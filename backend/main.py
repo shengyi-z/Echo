@@ -16,12 +16,6 @@ app.add_middleware(
 # Register routers
 app.include_router(chat.router)
 
-# 暂时注释掉其他路由，等实现后再添加
-# app.include_router(goals.router)
-# app.include_router(tasks.router)
-# app.include_router(plans.router)
-# app.include_router(reminders.router)
-
 @app.get("/")
 def read_root():
     return {"message": "Echo API is running"}

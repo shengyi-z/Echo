@@ -5,29 +5,43 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import sys
 import os
+from typing import List, Optional
 
-# 添加父目录到路径以便导入 init_echo
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+# 添加父目录到路径
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
 from init_echo import ensure_assistant, create_thread, send_message
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 class ChatRequest(BaseModel):
     message: str
-    thread_id: str = None
+    thread_id: str
 
 class ChatResponse(BaseModel):
     content: str
     thread_id: str
     role: str = "assistant"
 
-class InitRequest(BaseModel):
-    user_id: str = None  # 预留给未来的用户系统
-
 class InitResponse(BaseModel):
     assistant_id: str
     thread_id: str
     message: str
+
+class NewChatRequest(BaseModel):
+    title: Optional[str] = "New Chat"
+
+class NewChatResponse(BaseModel):
+    thread_id: str
+    title: str
+    created_at: str
+
+class ChatHistoryItem(BaseModel):
+    thread_id: str
+    title: str
+    preview: str
+    created_at: str
 
 @router.post("/init", response_model=InitResponse)
 async def initialize_user():
@@ -47,7 +61,29 @@ async def initialize_user():
             message="✅ 初始化成功，可以开始对话了！"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"初始化失败: {e}")
+        raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
+
+@router.post("/new", response_model=NewChatResponse)
+async def create_new_chat(request: NewChatRequest):
+    """
+    创建新的对话线程
+    """
+    try:
+        # 确保助手存在
+        assistant_id = await ensure_assistant()
+        
+        # 创建新线程
+        thread_id = create_thread(assistant_id)
+        
+        from datetime import datetime
+        
+        return NewChatResponse(
+            thread_id=thread_id,
+            title=request.title,
+            created_at=datetime.now().isoformat()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建新对话失败: {str(e)}")
 
 @router.post("/send", response_model=ChatResponse)
 async def send_chat_message(request: ChatRequest):
@@ -70,4 +106,4 @@ async def send_chat_message(request: ChatRequest):
             role="assistant"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"发送消息失败: {e}")
+        raise HTTPException(status_code=500, detail=f"发送消息失败: {str(e)}")
