@@ -3,12 +3,10 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.triggers.date import DateTrigger
-from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session
 from app.database import engine, SessionLocal
-from app.models import Reminder, ReminderStatus, Task, Channel
+from app.models import Reminder, ReminderStatus
 from app.notifications import send_notification
-from app.llm_client import llm
 
 log = logging.getLogger(__name__)
 
@@ -36,11 +34,6 @@ class Scheduler:
             self._run_reminder, trigger=trigger, args=[reminder_id])
         return job.id
 
-    def schedule_daily_digest(self, hour: int = 8, timezone: str = "UTC"):
-        trigger = CronTrigger(hour=hour, minute=0, timezone=timezone)
-        self.scheduler.add_job(self._run_daily_digest, trigger=trigger)
-        log.info("Daily digest scheduled at %02d:00 %s", hour, timezone)
-
     @staticmethod
     def _run_reminder(reminder_id: str):
         db: Session = SessionLocal()
@@ -62,21 +55,6 @@ class Scheduler:
             db.commit()
         except Exception as e:
             log.exception(f"Reminder {reminder_id} failed: {e}")
-        finally:
-            db.close()
-
-    @staticmethod
-    def _run_daily_digest():
-        db: Session = SessionLocal()
-        try:
-            tasks = db.query(Task).filter(Task.status != 'done').order_by(Task.created_at.asc()).limit(20).all()
-            if not tasks:
-                return
-            summary = "\n".join([f"- {t.title}: {t.description or ''}" for t in tasks])
-            text = llm.generate("生成晨间建议，提醒进行中的项目。", summary)
-            send_notification(db, Channel.email, f"Daily Digest\n{text}", reminder_id="digest")
-        except Exception as e:
-            log.exception(f"Daily digest failed: {e}")
         finally:
             db.close()
 

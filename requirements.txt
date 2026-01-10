@@ -1,6 +1,8 @@
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-sqlalchemy==2.0.25
-python-dateutil==2.8.2
-apscheduler==3.10.4
-pydantic==2.5.3
+fastapi>=0.115
+uvicorn[standard]>=0.30
+SQLAlchemy>=2.0
+APScheduler>=3.10
+python-dotenv>=1.0
+requests>=2.32
+pydantic>=2.7
+backboard-sdk>=0.1
