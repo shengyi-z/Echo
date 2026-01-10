@@ -7,14 +7,6 @@ import './App.css'
 
 const API_BASE_URL = 'http://localhost:8000'
 
-// Temporary mock data until we wire the backend.
-const chatHistory = [
-  { id: 'plan', title: 'My Life Plan', preview: 'Break down goals for Q1...' },
-  { id: 'visa', title: 'Visa Checklist', preview: 'Collect bank statements...' },
-  { id: 'french', title: 'Learn French', preview: 'Practice 20 min daily...' },
-  { id: 'fitness', title: 'Fitness Sprint', preview: '3 workouts this week' },
-]
-
 const initialMessages = [
   {
     id: 'm1',
@@ -26,18 +18,41 @@ const initialMessages = [
 ]
 
 function App() {
+  const [chatSessions, setChatSessions] = useState([])
+  const [currentThreadId, setCurrentThreadId] = useState(null)
   const [messages, setMessages] = useState(initialMessages)
   const [draft, setDraft] = useState('')
   const [activeView, setActiveView] = useState('chat')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSmallScreen, setIsSmallScreen] = useState(false)
-  const [threadId, setThreadId] = useState(null)
   const [assistantId, setAssistantId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
-  // 用户登录时初始化
+  // 用户登录时初始化或加载保存的对话
   useEffect(() => {
+    const savedSessions = localStorage.getItem('chatSessions')
+    const savedThreadId = localStorage.getItem('currentThreadId')
+    const savedAssistantId = localStorage.getItem('assistantId')
+    
+    // 如果有保存的数据，直接加载
+    if (savedSessions && savedThreadId && savedAssistantId) {
+      const sessions = JSON.parse(savedSessions)
+      setChatSessions(sessions)
+      setCurrentThreadId(savedThreadId)
+      setAssistantId(savedAssistantId)
+      setIsInitialized(true)
+      
+      const currentSession = sessions.find(s => s.thread_id === savedThreadId)
+      if (currentSession) {
+        setMessages(currentSession.messages)
+      }
+      
+      console.log('✅ Loaded saved sessions from localStorage')
+      return
+    }
+
+    // 否则初始化新对话
     const initializeChat = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/chat/init`, {
@@ -53,9 +68,23 @@ function App() {
         }
 
         const data = await response.json()
-        setThreadId(data.thread_id)
+        setCurrentThreadId(data.thread_id)
         setAssistantId(data.assistant_id)
         setIsInitialized(true)
+        
+        const newSession = {
+          id: data.thread_id,
+          thread_id: data.thread_id,
+          title: 'My Life Plan',
+          preview: 'Break down goals...',
+          messages: [...initialMessages]
+        }
+        setChatSessions([newSession])
+        
+        // 立即保存到 localStorage
+        localStorage.setItem('chatSessions', JSON.stringify([newSession]))
+        localStorage.setItem('currentThreadId', data.thread_id)
+        localStorage.setItem('assistantId', data.assistant_id)
         
         console.log('✅ Chat initialized:', data.message)
       } catch (error) {
@@ -65,6 +94,13 @@ function App() {
 
     initializeChat()
   }, [])
+
+  // 保存对话历史到 localStorage（当会话更新时）
+  useEffect(() => {
+    if (chatSessions.length > 0 && isInitialized) {
+      localStorage.setItem('chatSessions', JSON.stringify(chatSessions))
+    }
+  }, [chatSessions, isInitialized])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 640px)')
@@ -79,9 +115,81 @@ function App() {
     return () => mediaQuery.removeEventListener('change', syncState)
   }, [])
 
-  // Send message to backend and get AI response
+  // 创建新对话
+  const handleNewChat = async () => {
+    try {
+      console.log('🆕 Creating new chat...')
+      const response = await fetch(`${API_BASE_URL}/api/chat/new`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `Chat ${chatSessions.length + 1}`
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create new chat')
+      }
+
+      const data = await response.json()
+      console.log('✅ New chat created:', data)
+      
+      const newSession = {
+        id: data.thread_id,
+        thread_id: data.thread_id,
+        title: data.title,
+        preview: 'Start a new conversation...',
+        messages: [...initialMessages]
+      }
+      
+      setChatSessions(prev => [...prev, newSession])
+      setCurrentThreadId(data.thread_id)
+      setMessages([...initialMessages])
+      setActiveView('chat')
+      
+      // 立即保存
+      localStorage.setItem('currentThreadId', data.thread_id)
+      
+      console.log('📝 Chat sessions updated')
+    } catch (error) {
+      console.error('❌ Failed to create new chat:', error)
+    }
+  }
+
+  // 切换对话
+  const handleSelectChat = (chatId) => {
+    const session = chatSessions.find(s => s.id === chatId)
+    if (session) {
+      setCurrentThreadId(session.thread_id)
+      setMessages(session.messages)
+      setActiveView('chat')
+      localStorage.setItem('currentThreadId', session.thread_id)
+      if (isSmallScreen) {
+        setIsSidebarOpen(false)
+      }
+    }
+  }
+
+  // 更新当前对话的消息
+  const updateCurrentSessionMessages = (newMessages) => {
+    setChatSessions(prev => 
+      prev.map(session => 
+        session.thread_id === currentThreadId
+          ? { 
+              ...session, 
+              messages: newMessages, 
+              preview: newMessages[newMessages.length - 1]?.content?.slice(0, 30) + '...' || 'No messages'
+            }
+          : session
+      )
+    )
+  }
+
+  // 发送消息
   const handleSend = async () => {
-    if (!draft.trim() || isLoading || !isInitialized) return
+    if (!draft.trim() || isLoading || !isInitialized || !currentThreadId) return
     
     const userMessage = {
       id: `m-${Date.now()}`,
@@ -90,7 +198,9 @@ function App() {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
     
-    setMessages((prev) => [...prev, userMessage])
+    const newMessages = [...messages, userMessage]
+    setMessages(newMessages)
+    updateCurrentSessionMessages(newMessages)
     setDraft('')
     setIsLoading(true)
 
@@ -102,7 +212,7 @@ function App() {
         },
         body: JSON.stringify({
           message: userMessage.content,
-          thread_id: threadId,
+          thread_id: currentThreadId,
         }),
       })
 
@@ -112,7 +222,6 @@ function App() {
 
       const data = await response.json()
 
-      // Add AI response to messages
       const aiMessage = {
         id: `m-${Date.now()}-ai`,
         role: 'assistant',
@@ -120,34 +229,44 @@ function App() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
       
-      setMessages((prev) => [...prev, aiMessage])
+      const updatedMessages = [...newMessages, aiMessage]
+      setMessages(updatedMessages)
+      updateCurrentSessionMessages(updatedMessages)
     } catch (error) {
       console.error('Failed to send message:', error)
-      // Show error message in chat
       const errorMessage = {
         id: `m-${Date.now()}-error`,
         role: 'assistant',
         content: '❌ Sorry, I encountered an error. Please try again.',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
-      setMessages((prev) => [...prev, errorMessage])
+      const updatedMessages = [...newMessages, errorMessage]
+      setMessages(updatedMessages)
+      updateCurrentSessionMessages(updatedMessages)
     } finally {
       setIsLoading(false)
     }
   }
 
+  // 转换对话列表格式给 Sidebar
+  const chatHistoryItems = chatSessions.map(session => ({
+    id: session.id,
+    title: session.title,
+    preview: session.preview
+  }))
+
   return (
     <div className={`app-shell ${isSmallScreen && isSidebarOpen ? 'mobile-open' : ''}`}>
-      {/* Left column stays fixed to show chat history */}
       <Sidebar
-        items={chatHistory}
+        items={chatHistoryItems}
+        onSelectChat={handleSelectChat}
+        onNewChat={handleNewChat}
         onOpenDashboard={() => setActiveView('dashboard')}
         isOpen={!isSmallScreen || isSidebarOpen}
         isSmallScreen={isSmallScreen}
         onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
       />
 
-      {/* Right column holds the conversation and input */}
       <main className="chat-panel">
         {activeView === 'dashboard' ? (
           <Dashboard
@@ -169,13 +288,12 @@ function App() {
                 </button>
               )}
               <div>
-                <h1>My Life Plan</h1>
+                <h1>{chatSessions.find(s => s.thread_id === currentThreadId)?.title || 'Chat'}</h1>
                 <p>Long term goals, broken into weekly steps.</p>
               </div>
               <button className="ghost-button">Export</button>
             </header>
 
-            {/* Scrollable message list */}
             <section className="chat-scroll">
               {messages.map((message) => (
                 <ChatMessage
@@ -195,7 +313,6 @@ function App() {
               )}
             </section>
 
-            {/* Input stays visible at the bottom */}
             <ChatInput value={draft} onChange={setDraft} onSend={handleSend} />
           </>
         )}
