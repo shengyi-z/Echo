@@ -38,36 +38,5 @@ class BackboardClient:
         except Exception as e:
             log.warning(f"Backboard memory record failed: {e}")
 
-    def get_or_create_thread(self, user_id: str) -> str | None:
-        if not self.enabled():
-            return None
-        try:
-            # Placeholder: query for existing thread named "My Life Plan" for this user
-            url = f"{self.base_url}/threads"
-            resp = self.session.get(url, params={"user_id": user_id, "name": "My Life Plan"}, timeout=10)
-            if resp.ok and resp.json().get("thread_id"):
-                return resp.json()["thread_id"]
-            # Otherwise create
-            payload = {"user_id": user_id, "name": "My Life Plan"}
-            resp = self.session.post(url, json=payload, timeout=10)
-            if resp.ok:
-                return resp.json().get("thread_id")
-        except Exception as e:
-            log.warning(f"Backboard thread get/create failed: {e}")
-        return None
-
-    def retrieve_memory(self, thread_id: str, query: str) -> str:
-        if not self.enabled():
-            return ""
-        try:
-            url = f"{self.base_url}/memory/search"
-            resp = self.session.post(url, json={"thread_id": thread_id, "query": query}, timeout=10)
-            if resp.ok:
-                items = resp.json().get("items", [])
-                return "\n".join(i.get("text", "") for i in items)
-        except Exception as e:
-            log.warning(f"Backboard memory retrieval failed: {e}")
-        return ""
-
 
 backboard = BackboardClient()

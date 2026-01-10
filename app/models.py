@@ -74,10 +74,3 @@ class UserPreference(Base):
     default_channel = Column(
         Enum(Channel), nullable=False, default=Channel.email)
     timezone = Column(String, nullable=False, default="UTC")
-
-class BackboardThread(Base):
-    __tablename__ = "backboard_threads"
-
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, unique=True, nullable=False)
-    thread_id = Column(String, nullable=False)
