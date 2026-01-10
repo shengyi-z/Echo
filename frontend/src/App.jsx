@@ -253,15 +253,9 @@ function App() {
   const chatHistoryItems = chatSessions.map(session => ({
     id: session.id,
     title: session.title,
-    preview: session.preview
+    preview: session.preview,
+    isActive: session.thread_id === currentThreadId  // 添加这一行
   }))
-
-  // 自动滚动到最新消息
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
-    }
-  }, [messages])
 
   return (
     <div className={`app-shell ${isSmallScreen && isSidebarOpen ? 'mobile-open' : ''}`}>
@@ -273,6 +267,7 @@ function App() {
         isOpen={!isSmallScreen || isSidebarOpen}
         isSmallScreen={isSmallScreen}
         onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
+        currentThreadId={currentThreadId}  // 传递当前 thread_id
       />
 
       <main className="chat-panel">

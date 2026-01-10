@@ -1,7 +1,7 @@
 import ChatHistoryItem from './ChatHistoryItem'
 
 // Left rail with chat history and navigation.
-function Sidebar({ items, onSelectChat, onNewChat, onOpenDashboard, isOpen, isSmallScreen, onToggleMenu }) {
+function Sidebar({ items, onSelectChat, onNewChat, onOpenDashboard, isOpen, isSmallScreen, onToggleMenu, currentThreadId }) {
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''} ${isSmallScreen ? 'mobile' : ''}`}>
       <div className="sidebar-header">
@@ -15,12 +15,12 @@ function Sidebar({ items, onSelectChat, onNewChat, onOpenDashboard, isOpen, isSm
         <button className="new-chat" onClick={onNewChat}>New Chat</button>
       </div>
       <div className="history-list">
-        {items.map((item, index) => (
+        {items.map((item) => (
           <ChatHistoryItem
             key={item.id}
             title={item.title}
             preview={item.preview}
-            isActive={index === 0}
+            isActive={item.isActive}
             onClick={() => onSelectChat(item.id)}
           />
         ))}
