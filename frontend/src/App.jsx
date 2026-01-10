@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ChatInput from './components/ChatInput'
 import ChatMessage from './components/ChatMessage'
 import Dashboard from './components/Dashboard'
@@ -40,6 +40,21 @@ function App() {
   const [messages, setMessages] = useState(initialMessages)
   const [draft, setDraft] = useState('')
   const [activeView, setActiveView] = useState('chat')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSmallScreen, setIsSmallScreen] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)')
+    const syncState = () => {
+      setIsSmallScreen(mediaQuery.matches)
+      if (!mediaQuery.matches) {
+        setIsSidebarOpen(false)
+      }
+    }
+    syncState()
+    mediaQuery.addEventListener('change', syncState)
+    return () => mediaQuery.removeEventListener('change', syncState)
+  }, [])
 
   // Push the current draft into the message list.
   const handleSend = () => {
@@ -55,17 +70,37 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isSmallScreen && isSidebarOpen ? 'mobile-open' : ''}`}>
       {/* Left column stays fixed to show chat history */}
-      <Sidebar items={chatHistory} onOpenDashboard={() => setActiveView('dashboard')} />
+      <Sidebar
+        items={chatHistory}
+        onOpenDashboard={() => setActiveView('dashboard')}
+        isOpen={!isSmallScreen || isSidebarOpen}
+        isSmallScreen={isSmallScreen}
+        onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
+      />
 
       {/* Right column holds the conversation and input */}
       <main className="chat-panel">
         {activeView === 'dashboard' ? (
-          <Dashboard onBack={() => setActiveView('chat')} />
+          <Dashboard
+            onBack={() => setActiveView('chat')}
+            showMenuButton={isSmallScreen}
+            onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
+          />
         ) : (
           <>
             <header className="chat-header">
+              {isSmallScreen && (
+                <button
+                  className="menu-button"
+                  type="button"
+                  onClick={() => setIsSidebarOpen((prev) => !prev)}
+                  aria-label="Toggle sidebar"
+                >
+                  <span className="menu-icon" aria-hidden="true" />
+                </button>
+              )}
               <div>
                 <h1>My Life Plan</h1>
                 <p>Long term goals, broken into weekly steps.</p>
