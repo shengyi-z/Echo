@@ -28,7 +28,16 @@ function App() {
   const [assistantId, setAssistantId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editTitleValue, setEditTitleValue] = useState('')
   const chatScrollRef = useRef(null)
+
+  // 自动滚动到最新消息
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+    }
+  }, [messages])
 
   // 用户登录时初始化或加载保存的对话
   useEffect(() => {
@@ -36,7 +45,6 @@ function App() {
     const savedThreadId = localStorage.getItem('currentThreadId')
     const savedAssistantId = localStorage.getItem('assistantId')
     
-    // 如果有保存的数据，直接加载
     if (savedSessions && savedThreadId && savedAssistantId) {
       const sessions = JSON.parse(savedSessions)
       setChatSessions(sessions)
@@ -53,7 +61,6 @@ function App() {
       return
     }
 
-    // 否则初始化新对话
     const initializeChat = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/chat/init`, {
@@ -76,13 +83,13 @@ function App() {
         const newSession = {
           id: data.thread_id,
           thread_id: data.thread_id,
-          title: 'My Life Plan',
-          preview: 'Break down goals...',
-          messages: [...initialMessages]
+          title: 'New Chat',
+          preview: 'Start your first conversation...',
+          messages: [...initialMessages],
+          isFirstMessage: true
         }
         setChatSessions([newSession])
         
-        // 立即保存到 localStorage
         localStorage.setItem('chatSessions', JSON.stringify([newSession]))
         localStorage.setItem('currentThreadId', data.thread_id)
         localStorage.setItem('assistantId', data.assistant_id)
@@ -96,7 +103,7 @@ function App() {
     initializeChat()
   }, [])
 
-  // 保存对话历史到 localStorage（当会话更新时）
+  // 保存对话历史到 localStorage
   useEffect(() => {
     if (chatSessions.length > 0 && isInitialized) {
       localStorage.setItem('chatSessions', JSON.stringify(chatSessions))
@@ -116,17 +123,37 @@ function App() {
     return () => mediaQuery.removeEventListener('change', syncState)
   }, [])
 
+  // 生成唯一的 New Chat 标题
+  const getUniqueNewChatTitle = () => {
+    const existingTitles = chatSessions.map(s => s.title)
+    let counter = 1
+    let title = 'New Chat'
+    
+    // 如果 "New Chat" 已存在，尝试 "New Chat 1", "New Chat 2"...
+    while (existingTitles.includes(title)) {
+      title = `New Chat ${counter}`
+      counter++
+    }
+    
+    return title
+  }
+
   // 创建新对话
   const handleNewChat = async () => {
     try {
       console.log('🆕 Creating new chat...')
+      console.log('Current sessions:', chatSessions.map(s => s.title))
+      
+      const uniqueTitle = getUniqueNewChatTitle()
+      console.log('Generated unique title:', uniqueTitle)
+      
       const response = await fetch(`${API_BASE_URL}/api/chat/new`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: `Chat ${chatSessions.length + 1}`
+          title: uniqueTitle
         }),
       })
 
@@ -140,17 +167,21 @@ function App() {
       const newSession = {
         id: data.thread_id,
         thread_id: data.thread_id,
-        title: data.title,
+        title: uniqueTitle,
         preview: 'Start a new conversation...',
-        messages: [...initialMessages]
+        messages: [...initialMessages],
+        isFirstMessage: true
       }
       
-      setChatSessions(prev => [...prev, newSession])
+      setChatSessions(prev => {
+        const updated = [...prev, newSession]
+        console.log('Updated sessions:', updated.map(s => s.title))
+        return updated
+      })
       setCurrentThreadId(data.thread_id)
       setMessages([...initialMessages])
       setActiveView('chat')
       
-      // 立即保存
       localStorage.setItem('currentThreadId', data.thread_id)
       
       console.log('📝 Chat sessions updated')
@@ -173,24 +204,89 @@ function App() {
     }
   }
 
-  // 更新当前对话的消息
-  const updateCurrentSessionMessages = (newMessages) => {
-    setChatSessions(prev => 
-      prev.map(session => 
-        session.thread_id === currentThreadId
-          ? { 
-              ...session, 
-              messages: newMessages, 
-              preview: newMessages[newMessages.length - 1]?.content?.slice(0, 30) + '...' || 'No messages'
-            }
-          : session
+  // 更新对话标题
+  const handleUpdateTitle = async (threadId, newTitle) => {
+    if (!newTitle.trim()) return
+    
+    try {
+      await fetch(`${API_BASE_URL}/api/chat/update-title`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          thread_id: threadId,
+          title: newTitle.trim()
+        }),
+      })
+
+      setChatSessions(prev =>
+        prev.map(session =>
+          session.thread_id === threadId
+            ? { ...session, title: newTitle.trim() }
+            : session
+        )
       )
+      
+      console.log('✅ Title updated:', newTitle)
+    } catch (error) {
+      console.error('❌ Failed to update title:', error)
+    }
+  }
+
+  // 开始编辑标题（Chat Area）
+  const handleStartEditTitle = () => {
+    const currentSession = chatSessions.find(s => s.thread_id === currentThreadId)
+    if (currentSession) {
+      setEditTitleValue(currentSession.title)
+      setIsEditingTitle(true)
+    }
+  }
+
+  // 保存标题编辑（Chat Area）
+  const handleSaveTitleEdit = () => {
+    if (editTitleValue.trim() && currentThreadId) {
+      handleUpdateTitle(currentThreadId, editTitleValue.trim())
+    }
+    setIsEditingTitle(false)
+  }
+
+  // 取消标题编辑（Chat Area）
+  const handleCancelTitleEdit = () => {
+    setIsEditingTitle(false)
+    setEditTitleValue('')
+  }
+
+  // 更新当前对话的消息
+  const updateCurrentSessionMessages = (newMessages, suggestedTitle = null) => {
+    setChatSessions(prev =>
+      prev.map(session => {
+        if (session.thread_id === currentThreadId) {
+          const updates = {
+            messages: newMessages,
+            preview: newMessages[newMessages.length - 1]?.content?.slice(0, 30) + '...' || 'No messages',
+            isFirstMessage: false
+          }
+          
+          // 如果有建议的标题，并且当前标题还是 "New Chat" 系列，则自动更新
+          if (suggestedTitle && session.title.match(/^New Chat( \d+)?$/)) {
+            updates.title = suggestedTitle
+            handleUpdateTitle(currentThreadId, suggestedTitle)
+          }
+          
+          return { ...session, ...updates }
+        }
+        return session
+      })
     )
   }
 
   // 发送消息
   const handleSend = async () => {
     if (!draft.trim() || isLoading || !isInitialized || !currentThreadId) return
+    
+    const currentSession = chatSessions.find(s => s.thread_id === currentThreadId)
+    const isFirstMessage = currentSession?.isFirstMessage || false
     
     const userMessage = {
       id: `m-${Date.now()}`,
@@ -214,6 +310,7 @@ function App() {
         body: JSON.stringify({
           message: userMessage.content,
           thread_id: currentThreadId,
+          is_first_message: isFirstMessage
         }),
       })
 
@@ -232,7 +329,7 @@ function App() {
       
       const updatedMessages = [...newMessages, aiMessage]
       setMessages(updatedMessages)
-      updateCurrentSessionMessages(updatedMessages)
+      updateCurrentSessionMessages(updatedMessages, data.suggested_title)
     } catch (error) {
       console.error('Failed to send message:', error)
       const errorMessage = {
@@ -249,13 +346,57 @@ function App() {
     }
   }
 
+  // 删除对话
+  const handleDeleteChat = async (threadId) => {
+    if (!confirm('Are you sure you want to delete this chat?')) return
+    
+    try {
+      // 从列表中移除
+      const updatedSessions = chatSessions.filter(s => s.thread_id !== threadId)
+      setChatSessions(updatedSessions)
+      
+      // 如果删除的是当前对话，切换到第一个对话
+      if (currentThreadId === threadId) {
+        if (updatedSessions.length > 0) {
+          const firstSession = updatedSessions[0]
+          setCurrentThreadId(firstSession.thread_id)
+          setMessages(firstSession.messages)
+          localStorage.setItem('currentThreadId', firstSession.thread_id)
+        } else {
+          // 如果没有对话了，创建新对话
+          handleNewChat()
+        }
+      }
+      
+      console.log('✅ Chat deleted:', threadId)
+    } catch (error) {
+      console.error('❌ Failed to delete chat:', error)
+    }
+  }
+
+  // 置顶/取消置顶对话
+  const handlePinChat = (threadId) => {
+    setChatSessions(prev =>
+      prev.map(session =>
+        session.thread_id === threadId
+          ? { ...session, isPinned: !session.isPinned }
+          : session
+      )
+    )
+    console.log('✅ Chat pin toggled:', threadId)
+  }
+
   // 转换对话列表格式给 Sidebar
   const chatHistoryItems = chatSessions.map(session => ({
     id: session.id,
+    thread_id: session.thread_id,
     title: session.title,
     preview: session.preview,
-    isActive: session.thread_id === currentThreadId  // 添加这一行
+    isActive: session.thread_id === currentThreadId,
+    isPinned: session.isPinned || false
   }))
+
+  const currentChatTitle = chatSessions.find(s => s.thread_id === currentThreadId)?.title || 'Chat'
 
   return (
     <div className={`app-shell ${isSmallScreen && isSidebarOpen ? 'mobile-open' : ''}`}>
@@ -263,11 +404,13 @@ function App() {
         items={chatHistoryItems}
         onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
+        onUpdateTitle={handleUpdateTitle}
+        onDeleteChat={handleDeleteChat}
+        onPinChat={handlePinChat}
         onOpenDashboard={() => setActiveView('dashboard')}
         isOpen={!isSmallScreen || isSidebarOpen}
         isSmallScreen={isSmallScreen}
         onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
-        currentThreadId={currentThreadId}  // 传递当前 thread_id
       />
 
       <main className="chat-panel">
@@ -291,7 +434,28 @@ function App() {
                 </button>
               )}
               <div>
-                <h1>{chatSessions.find(s => s.thread_id === currentThreadId)?.title || 'Chat'}</h1>
+                {isEditingTitle ? (
+                  <input
+                    type="text"
+                    className="chat-title-edit"
+                    value={editTitleValue}
+                    onChange={(e) => setEditTitleValue(e.target.value)}
+                    onBlur={handleSaveTitleEdit}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveTitleEdit()
+                      if (e.key === 'Escape') handleCancelTitleEdit()
+                    }}
+                    autoFocus
+                  />
+                ) : (
+                  <h1 
+                    onDoubleClick={handleStartEditTitle}
+                    style={{ cursor: 'pointer' }}
+                    title="Double-click to rename"
+                  >
+                    {currentChatTitle}
+                  </h1>
+                )}
                 <p>Long term goals, broken into weekly steps.</p>
               </div>
               <button className="ghost-button">Export</button>

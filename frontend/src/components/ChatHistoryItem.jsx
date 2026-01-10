@@ -1,13 +1,121 @@
+import { useState, useRef, useEffect } from 'react'
+
 // Single item in the chat history list.
-function ChatHistoryItem({ title, preview, isActive, onClick }) {
+function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename, onDelete, onPin }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(title)
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
+
+  const handleDoubleClick = (e) => {
+    e.stopPropagation()
+    setEditTitle(title)
+    setIsEditing(true)
+  }
+
+  const handleSave = () => {
+    if (editTitle.trim() && editTitle !== title) {
+      onRename(editTitle.trim())
+    } else {
+      setEditTitle(title)
+    }
+    setIsEditing(false)
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSave()
+    } else if (e.key === 'Escape') {
+      setEditTitle(title)
+      setIsEditing(false)
+    }
+  }
+
+  const handleBlur = () => {
+    handleSave()
+  }
+
+  const handleMenuClick = (e) => {
+    e.stopPropagation()
+    setShowMenu(!showMenu)
+  }
+
+  const handleDelete = (e) => {
+    e.stopPropagation()
+    setShowMenu(false)
+    onDelete()
+  }
+
+  const handlePin = (e) => {
+    e.stopPropagation()
+    setShowMenu(false)
+    onPin()
+  }
+
   return (
-    <button 
-      className={`history-item ${isActive ? 'active' : ''}`}
-      onClick={onClick}
-    >
-      <div className="history-title">{title}</div>
-      <div className="history-preview">{preview}</div>
-    </button>
+    <div className={`history-item-wrapper ${isActive ? 'active' : ''}`}>
+      <button 
+        className={`history-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}`}
+        onClick={!isEditing ? onClick : undefined}
+        onDoubleClick={handleDoubleClick}
+        title="Double-click to rename"
+      >
+        {isPinned && <span className="pin-icon">📌</span>}
+        {isEditing ? (
+          <div className="history-content">
+            <input
+              type="text"
+              className="history-title-edit"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+              onClick={(e) => e.stopPropagation()}
+              autoFocus
+            />
+          </div>
+        ) : (
+          <div className="history-content">
+            <div className="history-title">{title}</div>
+            <div className="history-preview">{preview}</div>
+          </div>
+        )}
+      </button>
+      
+      <button 
+        className="history-menu-button"
+        onClick={handleMenuClick}
+        title="More options"
+      >
+        ⋮
+      </button>
+
+      {showMenu && (
+        <div className="history-menu" ref={menuRef}>
+          <button className="history-menu-item" onClick={handlePin}>
+            {isPinned ? '📌 Unpin Chat' : '📌 Pin Chat'}
+          </button>
+          <button className="history-menu-item delete" onClick={handleDelete}>
+            🗑️ Delete Chat
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
