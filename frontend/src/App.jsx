@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import ChatInput from './components/ChatInput'
 import ChatMessage from './components/ChatMessage'
 import Dashboard from './components/Dashboard'
@@ -28,6 +28,7 @@ function App() {
   const [assistantId, setAssistantId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const chatScrollRef = useRef(null)
 
   // 用户登录时初始化或加载保存的对话
   useEffect(() => {
@@ -255,6 +256,13 @@ function App() {
     preview: session.preview
   }))
 
+  // 自动滚动到最新消息
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+    }
+  }, [messages])
+
   return (
     <div className={`app-shell ${isSmallScreen && isSidebarOpen ? 'mobile-open' : ''}`}>
       <Sidebar
@@ -294,7 +302,7 @@ function App() {
               <button className="ghost-button">Export</button>
             </header>
 
-            <section className="chat-scroll">
+            <section className="chat-scroll" ref={chatScrollRef}>
               {messages.map((message) => (
                 <ChatMessage
                   key={message.id}

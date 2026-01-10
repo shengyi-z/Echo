@@ -126,6 +126,10 @@
   min-height: 100%;
   padding: 28px clamp(20px, 4vw, 40px);
   gap: 18px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; /* 防止整个面板滚动 */
 }
 
 .chat-header {
@@ -133,6 +137,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-shrink: 0; /* 防止 header 被压缩 */
 }
 
 .chat-header h1 {
@@ -199,10 +204,13 @@
 .chat-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-right: 6px;
+  gap: 1rem;
+  /* 确保滚动区域有最大高度 */
+  max-height: calc(100vh - 120px); /* 减去 header 和 input 的高度 */
 }
 
 .chat-message {
@@ -255,6 +263,7 @@
   padding: 10px 12px;
   box-shadow: var(--shadow-soft);
   border: 1px solid var(--border);
+  flex-shrink: 0; /* 防止 input 被压缩 */
 }
 
 .chat-input textarea {
