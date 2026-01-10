@@ -5,9 +5,9 @@ load_dotenv()
 
 
 class Settings:
-    BACKBOARD_API_KEY: str | None = os.getenv("espr_fOaXQW7733tsQ0-UaDmrMCLQDzS3aH-TlEasZx_vt0Y")
+    BACKBOARD_API_KEY: str | None = os.getenv("BACKBOARD_API_KEY")
     BACKBOARD_BASE_URL: str = os.getenv(
-        "BACKBOARD_BASE_URL", "https://api.backboard.io")
+        "BACKBOARD_BASE_URL", "https://app.backboard.io/api")
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./data.db")
     TZ_DEFAULT: str = os.getenv("TZ_DEFAULT", "UTC")
 

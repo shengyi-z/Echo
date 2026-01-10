@@ -3,9 +3,10 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.triggers.date import DateTrigger
+from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session
 from app.db.database import engine, SessionLocal
-from app.db.models import Reminder, ReminderStatus
+from app.db.models import Reminder, ReminderStatus, Task, Channel
 from app.services.notifications import send_notification
 
 log = logging.getLogger(__name__)
@@ -34,6 +35,12 @@ class Scheduler:
             self._run_reminder, trigger=trigger, args=[reminder_id])
         return job.id
 
+    def schedule_daily_digest(self, hour: int = 8, timezone: str = "UTC"):
+        """Schedule a daily digest at the specified hour."""
+        trigger = CronTrigger(hour=hour, minute=0, timezone=timezone)
+        self.scheduler.add_job(self._run_daily_digest, trigger=trigger)
+        log.info(f"Daily digest scheduled at {hour:02d}:00 {timezone}")
+
     @staticmethod
     def _run_reminder(reminder_id: str):
         db: Session = SessionLocal()
@@ -55,6 +62,25 @@ class Scheduler:
             db.commit()
         except Exception as e:
             log.exception(f"Reminder {reminder_id} failed: {e}")
+        finally:
+            db.close()
+
+    @staticmethod
+    def _run_daily_digest():
+        """Generate and send daily digest of pending tasks."""
+        db: Session = SessionLocal()
+        try:
+            tasks = db.query(Task).filter(Task.status != 'done').order_by(Task.created_at.asc()).limit(20).all()
+            if not tasks:
+                log.info("No pending tasks for daily digest")
+                return
+            
+            summary = "\n".join([f"- {t.title}: {t.description or ''}" for t in tasks])
+            message = f"Daily Digest\n\nPending tasks:\n{summary}"
+            send_notification(db, Channel.email, message, reminder_id="digest")
+            log.info("Daily digest sent successfully")
+        except Exception as e:
+            log.exception(f"Daily digest failed: {e}")
         finally:
             db.close()
 

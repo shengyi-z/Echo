@@ -42,3 +42,12 @@ class ReminderOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ChatRequest(BaseModel):
+    user_id: Optional[str] = None
+    message: str
+
+
+class ChatResponse(BaseModel):
+    message: str
