@@ -1,34 +1,131 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
+import ChatInput from './components/ChatInput'
+import ChatMessage from './components/ChatMessage'
+import Dashboard from './components/Dashboard'
+import Sidebar from './components/Sidebar'
 import './App.css'
 
+// Temporary mock data until we wire the backend.
+const chatHistory = [
+  { id: 'plan', title: 'My Life Plan', preview: 'Break down goals for Q1...' },
+  { id: 'visa', title: 'Visa Checklist', preview: 'Collect bank statements...' },
+  { id: 'french', title: 'Learn French', preview: 'Practice 20 min daily...' },
+  { id: 'fitness', title: 'Fitness Sprint', preview: '3 workouts this week' },
+]
+
+const initialMessages = [
+  {
+    id: 'm1',
+    role: 'assistant',
+    content:
+      'Hey! Tell me the goal you want to tackle first, and I will break it into steps.',
+    time: '09:10',
+  },
+  {
+    id: 'm2',
+    role: 'user',
+    content: 'I want to get my driver license before August.',
+    time: '09:12',
+  },
+  {
+    id: 'm3',
+    role: 'assistant',
+    content:
+      'Great. We will split it into milestones: theory, materials, booking, and test. Which city are you in?',
+    time: '09:13',
+  },
+]
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [messages, setMessages] = useState(initialMessages)
+  const [draft, setDraft] = useState('')
+  const [activeView, setActiveView] = useState('chat')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSmallScreen, setIsSmallScreen] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)')
+    const syncState = () => {
+      setIsSmallScreen(mediaQuery.matches)
+      if (!mediaQuery.matches) {
+        setIsSidebarOpen(false)
+      }
+    }
+    syncState()
+    mediaQuery.addEventListener('change', syncState)
+    return () => mediaQuery.removeEventListener('change', syncState)
+  }, [])
+
+  // Push the current draft into the message list.
+  const handleSend = () => {
+    if (!draft.trim()) return
+    const next = {
+      id: `m-${Date.now()}`,
+      role: 'user',
+      content: draft.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }
+    setMessages((prev) => [...prev, next])
+    setDraft('')
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className={`app-shell ${isSmallScreen && isSidebarOpen ? 'mobile-open' : ''}`}>
+      {/* Left column stays fixed to show chat history */}
+      <Sidebar
+        items={chatHistory}
+        onOpenDashboard={() => setActiveView('dashboard')}
+        isOpen={!isSmallScreen || isSidebarOpen}
+        isSmallScreen={isSmallScreen}
+        onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
+      />
+
+      {/* Right column holds the conversation and input */}
+      <main className="chat-panel">
+        {activeView === 'dashboard' ? (
+          <Dashboard
+            onBack={() => setActiveView('chat')}
+            showMenuButton={isSmallScreen}
+            onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
+          />
+        ) : (
+          <>
+            <header className="chat-header">
+              {isSmallScreen && (
+                <button
+                  className="menu-button"
+                  type="button"
+                  onClick={() => setIsSidebarOpen((prev) => !prev)}
+                  aria-label="Toggle sidebar"
+                >
+                  <span className="menu-icon" aria-hidden="true" />
+                </button>
+              )}
+              <div>
+                <h1>My Life Plan</h1>
+                <p>Long term goals, broken into weekly steps.</p>
+              </div>
+              <button className="ghost-button">Export</button>
+            </header>
+
+            {/* Scrollable message list */}
+            <section className="chat-scroll">
+              {messages.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  role={message.role}
+                  content={message.content}
+                  time={message.time}
+                />
+              ))}
+            </section>
+
+            {/* Input stays visible at the bottom */}
+            <ChatInput value={draft} onChange={setDraft} onSend={handleSend} />
+          </>
+        )}
+      </main>
+    </div>
   )
 }
 
