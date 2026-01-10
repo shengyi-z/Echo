@@ -14,6 +14,14 @@ function ChatInput({ value, onChange, onSend }) {
     textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_INPUT_HEIGHT)}px`
   }, [value])
 
+  // Handle Enter key to send (Shift+Enter for new line)
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      onSend()
+    }
+  }
+
   return (
     <form
       className="chat-input"
@@ -30,6 +38,7 @@ function ChatInput({ value, onChange, onSend }) {
         ref={textareaRef}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder="Ask Echo to plan your next step..."
         rows={1}
       />
