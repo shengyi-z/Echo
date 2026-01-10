@@ -4,25 +4,13 @@ import TodayTasks from './TodayTasks'
 import WeeklyTimeline from './WeeklyTimeline'
 
 // Dashboard view that summarizes current progress.
-function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
+function Dashboard({ onBack }) {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <div className="dashboard-actions">
-          {showMenuButton && (
-            <button
-              className="menu-button"
-              type="button"
-              onClick={onToggleMenu}
-              aria-label="Toggle sidebar"
-            >
-              <span className="menu-icon" aria-hidden="true" />
-            </button>
-          )}
-          <button className="back-button" type="button" onClick={onBack}>
-            Back
-          </button>
-        </div>
+        <button className="back-button" type="button" onClick={onBack}>
+          ← Back
+        </button>
         <div>
           <h1>Dashboard</h1>
           <p>Stay on top of what matters this week.</p>
