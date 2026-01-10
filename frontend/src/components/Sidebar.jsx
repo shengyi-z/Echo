@@ -1,7 +1,7 @@
 import ChatHistoryItem from './ChatHistoryItem'
 
-// Left rail with chat history and actions.
-function Sidebar({ items }) {
+// Left rail with chat history and navigation.
+function Sidebar({ items, onOpenDashboard }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -18,6 +18,9 @@ function Sidebar({ items }) {
           />
         ))}
       </div>
+      <button className="nav-tab" type="button" onClick={onOpenDashboard}>
+        Dashboard
+      </button>
       <div className="sidebar-footer">
         <div className="profile-chip">Karen</div>
       </div>

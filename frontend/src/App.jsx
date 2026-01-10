@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ChatInput from './components/ChatInput'
 import ChatMessage from './components/ChatMessage'
+import Dashboard from './components/Dashboard'
 import Sidebar from './components/Sidebar'
 import './App.css'
 
@@ -38,6 +39,7 @@ const initialMessages = [
 function App() {
   const [messages, setMessages] = useState(initialMessages)
   const [draft, setDraft] = useState('')
+  const [activeView, setActiveView] = useState('chat')
 
   // Push the current draft into the message list.
   const handleSend = () => {
@@ -55,32 +57,38 @@ function App() {
   return (
     <div className="app-shell">
       {/* Left column stays fixed to show chat history */}
-      <Sidebar items={chatHistory} />
+      <Sidebar items={chatHistory} onOpenDashboard={() => setActiveView('dashboard')} />
 
       {/* Right column holds the conversation and input */}
       <main className="chat-panel">
-        <header className="chat-header">
-          <div>
-            <h1>My Life Plan</h1>
-            <p>Long term goals, broken into weekly steps.</p>
-          </div>
-          <button className="ghost-button">Export</button>
-        </header>
+        {activeView === 'dashboard' ? (
+          <Dashboard onBack={() => setActiveView('chat')} />
+        ) : (
+          <>
+            <header className="chat-header">
+              <div>
+                <h1>My Life Plan</h1>
+                <p>Long term goals, broken into weekly steps.</p>
+              </div>
+              <button className="ghost-button">Export</button>
+            </header>
 
-        {/* Scrollable message list */}
-        <section className="chat-scroll">
-          {messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              role={message.role}
-              content={message.content}
-              time={message.time}
-            />
-          ))}
-        </section>
+            {/* Scrollable message list */}
+            <section className="chat-scroll">
+              {messages.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  role={message.role}
+                  content={message.content}
+                  time={message.time}
+                />
+              ))}
+            </section>
 
-        {/* Input stays visible at the bottom */}
-        <ChatInput value={draft} onChange={setDraft} onSend={handleSend} />
+            {/* Input stays visible at the bottom */}
+            <ChatInput value={draft} onChange={setDraft} onSend={handleSend} />
+          </>
+        )}
       </main>
     </div>
   )
