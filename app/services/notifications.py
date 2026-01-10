@@ -1,5 +1,5 @@
 import logging
-from app.models import Channel, Notification
+from app.db.models import Channel, Notification
 from sqlalchemy.orm import Session
 
 log = logging.getLogger(__name__)

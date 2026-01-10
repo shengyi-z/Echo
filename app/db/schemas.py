@@ -1,7 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
-from app.models import TaskStatus, Channel, ReminderStatus
+from app.db.models import TaskStatus, Channel, ReminderStatus
 
 
 class TaskCreate(BaseModel):
