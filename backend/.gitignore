@@ -1,0 +1,89 @@
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Test and coverage artifacts
+.coverage
+.coverage.*
+.pytest_cache/
+.cache/
+nosetests.xml
+coverage.xml
+htmlcov/
+
+# Type checker caches
+.mypy_cache/
+
+# Lint/analysis caches
+.ruff_cache/
+.pyre/
+
+# Sphinx docs
+docs/_build/
+
+# Jupyter
+.ipynb_checkpoints
+
+# PEP 582 local packages
+__pypackages__/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.idea/
+
+# OS/editor temp files
+*.swp
+*~
+
+# Local databases
+*.sqlite3
+
+# Frontend build and deps
+../frontend/node_modules/
+../frontend/.next/
+../frontend/.nuxt/
+../frontend/dist/
+
+# Python versions
+.python-version
+.tool-versions
+
+# Docker local overrides
+../docker-compose.override.yml
+*.local.yml
+
+# Project data (optional)
+../data/
