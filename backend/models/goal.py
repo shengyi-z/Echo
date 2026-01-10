@@ -13,7 +13,7 @@ class Goal(Base):
     __tablename__ = "goals"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    memory_id = Column(String, nullable=False, unique=True, index=True)
+    memory_id = Column(String, nullable=False, index=True)
     title = Column(String, nullable=False, index=True)
     type = Column(String, nullable=False)
     deadline = Column(Date, nullable=False)
