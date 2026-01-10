@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 #  use relative import paths
-from core.db import Base, engine, SessionLocal
+from .core.db import Base, engine, SessionLocal
 from models.goal import Goal
 from models.milestone import Milestone
 from models.task import Task
