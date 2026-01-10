@@ -1,42 +1,245 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  color: var(--text-primary);
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Sidebar */
+.sidebar {
+  width: clamp(220px, 22vw, 280px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.sidebar-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.logo-mark {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.new-chat {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.history-item {
+  text-align: left;
+  border: 1px solid transparent;
+  background: var(--panel-alt);
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border 0.2s ease, transform 0.2s ease;
+}
+
+.history-item:hover {
+  border-color: var(--accent-muted);
+  transform: translateY(-1px);
+}
+
+.history-item.active {
+  border-color: var(--accent);
+  background: #f3f3ff;
+}
+
+.history-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.history-preview {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+}
+
+.profile-chip {
+  background: #111827;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  width: fit-content;
+}
+
+/* Chat panel */
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 28px clamp(20px, 4vw, 40px);
+  gap: 18px;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.chat-header h1 {
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  margin: 0 0 6px;
+}
+
+.chat-header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.ghost-button {
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Scrollable conversation area */
+.chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 6px;
+}
+
+.chat-message {
+  display: flex;
+}
+
+.chat-message.user {
+  justify-content: flex-end;
+}
+
+.chat-message.assistant {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: min(560px, 90%);
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+}
+
+.chat-message.user .message-bubble {
+  background: #111827;
+  color: #fff;
+}
+
+.message-bubble p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.message-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.chat-message.user .message-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Input area */
+.chat-input {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border);
+}
+
+.chat-input textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  background: transparent;
+}
+
+.send-button {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 190px;
+    padding: 16px;
   }
-  to {
-    transform: rotate(360deg);
+
+  .chat-panel {
+    padding: 20px;
+  }
+
+  .history-preview {
+    display: none;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@media (max-width: 640px) {
+  .sidebar {
+    width: 160px;
+    padding: 12px;
   }
-}
 
-.card {
-  padding: 2em;
-}
+  .chat-panel {
+    padding: 16px;
+  }
 
-.read-the-docs {
-  color: #888;
+  .history-title {
+    font-size: 0.9rem;
+  }
+
+  .new-chat {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
 }
