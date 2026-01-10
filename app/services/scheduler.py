@@ -4,9 +4,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.triggers.date import DateTrigger
 from sqlalchemy.orm import Session
-from app.database import engine, SessionLocal
-from app.models import Reminder, ReminderStatus
-from app.notifications import send_notification
+from app.db.database import engine, SessionLocal
+from app.db.models import Reminder, ReminderStatus
+from app.services.notifications import send_notification
 
 log = logging.getLogger(__name__)
 
