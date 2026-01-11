@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import chat, goals, plans, tasks
+try:
+    from .api import chat, goals, plans, tasks
+except ImportError:
+    from api import chat, goals, plans, tasks
 
 # App instance and global middleware.
 app = FastAPI(title="Echo API")

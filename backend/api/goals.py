@@ -23,15 +23,30 @@ router = APIRouter(prefix="/api/goals", tags=["goals"])
 def _model_dump(model) -> Mapping[str, object]:
     return model.model_dump() if hasattr(model, "model_dump") else model.dict()
 
+def _normalize_enum(value):
+    return value.value if hasattr(value, "value") else value
+
 
 # Create a goal and optional milestone/task hierarchy.
 @router.post("", response_model=GoalOut)
 def create_goal(payload: GoalCreate, db: Session = Depends(get_db)) -> GoalOut:
     repo = GoalRepository(db)
+    existing_goal = repo.get_goal_by_memory_id(payload.memory_id)
+    if existing_goal:
+        raise HTTPException(
+            status_code=409,
+            detail="Goal with this memory_id already exists.",
+        )
     milestones_payload = []
     for milestone in payload.milestones:
         milestone_data = _model_dump(milestone)
-        tasks_payload = [_model_dump(task) for task in milestone.tasks]
+        milestone_data["status"] = _normalize_enum(milestone_data.get("status"))
+        tasks_payload = []
+        for task in milestone.tasks:
+            task_data = _model_dump(task)
+            task_data["priority"] = _normalize_enum(task_data.get("priority"))
+            task_data["status"] = _normalize_enum(task_data.get("status"))
+            tasks_payload.append(task_data)
         milestone_data["tasks"] = tasks_payload
         milestones_payload.append(milestone_data)
 
@@ -131,7 +146,12 @@ def create_milestone(
     db: Session = Depends(get_db),
 ) -> MilestoneOut:
     repo = GoalRepository(db)
-    tasks_payload = [_model_dump(task) for task in payload.tasks]
+    tasks_payload = []
+    for task in payload.tasks:
+        task_data = _model_dump(task)
+        task_data["priority"] = _normalize_enum(task_data.get("priority"))
+        task_data["status"] = _normalize_enum(task_data.get("status"))
+        tasks_payload.append(task_data)
     milestone = repo.add_milestone(
         goal_id,
         title=payload.title,

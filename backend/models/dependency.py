@@ -21,5 +21,5 @@ class Dependency(Base):
     )
 
     # Relationships
-    from_task = relationship("Task", foreign_keys=[from_task_id])
-    to_task = relationship("Task", foreign_keys=[to_task_id])
+    from_task = relationship("Task", foreign_keys=[from_task_id], overlaps="outgoing_dependencies")
+    to_task = relationship("Task", foreign_keys=[to_task_id], overlaps="incoming_dependencies")

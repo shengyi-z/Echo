@@ -28,9 +28,11 @@ class Task(Base):
         "Dependency",
         foreign_keys="Dependency.from_task_id",
         cascade="all, delete-orphan",
+        overlaps="from_task",
     )
     incoming_dependencies = relationship(
         "Dependency",
         foreign_keys="Dependency.to_task_id",
         cascade="all, delete-orphan",
+        overlaps="to_task",
     )

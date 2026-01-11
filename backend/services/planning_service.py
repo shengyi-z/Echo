@@ -42,7 +42,7 @@ class PlanningService:
             milestones=milestones_payload,
         )
         self.session.commit()
-
+ 
         # Reload with children so we can format a full response.
         stored_goal = self.goal_repo.get_goal(goal.id, include_children=True)
         if not stored_goal:
