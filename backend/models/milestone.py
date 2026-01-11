@@ -23,3 +23,4 @@ class Milestone(Base):
     # Relationships
     goal = relationship("Goal", back_populates="milestones")
     tasks = relationship("Task", back_populates="milestone", cascade="all, delete-orphan")
+    reminders = relationship("Reminder", back_populates="milestone", cascade="all, delete-orphan")

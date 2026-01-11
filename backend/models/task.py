@@ -24,6 +24,7 @@ class Task(Base):
     # Relationships
     goal = relationship("Goal", back_populates="tasks")
     milestone = relationship("Milestone", back_populates="tasks")
+    reminders = relationship("Reminder", back_populates="task", cascade="all, delete-orphan")
     outgoing_dependencies = relationship(
         "Dependency",
         foreign_keys="Dependency.from_task_id",
