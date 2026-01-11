@@ -1,33 +1,66 @@
-// Weekly milestones timeline.
-function WeeklyTimeline() {
+// 周度里程碑时间线。
+function WeeklyTimeline({ milestones = [], isLoading, error }) {
+  // 加载态。
+  if (isLoading) {
+    return (
+      <article className="dash-card">
+        <header className="dash-card-header">
+          <h2>Weekly timeline</h2>
+          <span className="pill ghost">Timeline</span>
+        </header>
+        <p>Loading milestones...</p>
+      </article>
+    )
+  }
+
+  // 错误态。
+  if (error) {
+    return (
+      <article className="dash-card">
+        <header className="dash-card-header">
+          <h2>Weekly timeline</h2>
+          <span className="pill ghost">Timeline</span>
+        </header>
+        <p>Could not load milestones.</p>
+      </article>
+    )
+  }
+
+  // 空态。
+  if (!milestones.length) {
+    return (
+      <article className="dash-card">
+        <header className="dash-card-header">
+          <h2>Weekly timeline</h2>
+          <span className="pill ghost">Timeline</span>
+        </header>
+        <p>No milestones yet.</p>
+      </article>
+    )
+  }
+
+  // 正常态。
   return (
     <article className="dash-card">
       <header className="dash-card-header">
-        <h2>本周关键节点</h2>
+        <h2>Weekly timeline</h2>
         <span className="pill ghost">Timeline</span>
       </header>
       <div className="timeline">
-        <div className="timeline-row">
-          <span className="timeline-date">Mon</span>
-          <div>
-            <p className="timeline-title">完成模拟考试</p>
-            <p className="timeline-note">目标分数 90+</p>
+        {milestones.map((milestone) => (
+          <div key={milestone.id} className="timeline-row">
+            <span className="timeline-date">
+              {new Date(milestone.target_date).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+              })}
+            </span>
+            <div>
+              <p className="timeline-title">{milestone.title}</p>
+              <p className="timeline-note">{milestone.definition_of_done}</p>
+            </div>
           </div>
-        </div>
-        <div className="timeline-row">
-          <span className="timeline-date">Wed</span>
-          <div>
-            <p className="timeline-title">提交报名材料</p>
-            <p className="timeline-note">身份证 + 体检证明</p>
-          </div>
-        </div>
-        <div className="timeline-row">
-          <span className="timeline-date">Fri</span>
-          <div>
-            <p className="timeline-title">预约科目二练车</p>
-            <p className="timeline-note">晚上 7 点之后</p>
-          </div>
-        </div>
+        ))}
       </div>
     </article>
   )
