@@ -29,6 +29,8 @@ class PlanGoalInput(BaseModel):
 class PlanRequest(BaseModel):
     user_context: str = "I am ready for the day."
     timezone: str = "UTC"
+    thread_id: str = Field(..., description="Backboard thread ID for AI conversation context")
+    memory_id: Optional[str] = Field(None, description="Optional memory ID for linking to external context")
     goal: Optional[PlanGoalInput] = None
     constraints: List[ConstraintInput] = Field(default_factory=list)
     current_state: Dict[str, object] = Field(default_factory=dict)
