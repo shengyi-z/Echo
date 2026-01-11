@@ -3,6 +3,7 @@ import os
 import re
 import requests
 from dotenv import load_dotenv
+from backboard import BackboardClient
 
 # 加载当前环境 (为了拿 API KEY)
 load_dotenv()
@@ -14,43 +15,40 @@ BASE_URL = "https://app.backboard.io/api"
 # ---------------------------------------------------------
 async def ensure_assistant():
     """
-    Ensure assistant exists; create one if missing.
-    Returns assistant_id.
+    确保助手存在，如果不存在则创建
+    返回 assistant_id
     """
     api_key = os.getenv("BACKBOARD_API_KEY")
     if not api_key:
         raise ValueError("BACKBOARD_API_KEY not found in .env")
-
+    
     existing_asst_id = os.getenv("BACKBOARD_ASSISTANT_ID")
+    
     if existing_asst_id:
-        print(f"Using existing assistant ID: {existing_asst_id}")
+        print(f"✅ 使用已有助手 ID: {existing_asst_id}")
         return existing_asst_id
-
-    print("Creating assistant...")
+    
+    # 创建新助手
+    print("🔧 正在创建新助手...")
+    client = BackboardClient(api_key=api_key)
+    
     try:
-        headers = {"X-API-Key": api_key}
-        payload = {
-            "name": "Echo Daily Secretary",
-            "description": (
-                "You are a long-term planning assistant. Break goals into milestones and tasks."
-            ),
-        }
-        response = requests.post(
-            f"{BASE_URL}/assistants",
-            json=payload,
-            headers=headers,
-            timeout=10,
+        assistant = await client.create_assistant(
+            name="Echo Daily Secretary",
+            description="你是一个专业的长期目标规划员和生活助理。你会把目标拆解为可执行的里程碑，使用搜索工具寻找最有性价比的方案，并帮助用户管理日常任务。"
         )
-        response.raise_for_status()
-        assistant_id = response.json()["assistant_id"]
-        print(f"Assistant created: {assistant_id}")
-
+        assistant_id = assistant.assistant_id
+        print(f"✅ 助手创建成功! ID: {assistant_id}")
+        
+        # 写入 .env
         update_env_file("BACKBOARD_ASSISTANT_ID", assistant_id)
         return assistant_id
     except Exception as e:
-        raise Exception(f"Failed to create assistant: {e}")
+        raise Exception(f"创建助手失败: {e}")
 
-
+# ---------------------------------------------------------
+# 核心功能：创建新对话线程
+# ---------------------------------------------------------
 def create_thread(assistant_id: str = None):
     """
     为用户创建独立的对话线程
