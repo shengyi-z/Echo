@@ -1,58 +1,24 @@
-// 今日任务卡片：展示最近的待办清单。
-function TodayTasks({ tasks = [], isLoading, error }) {
-  // 加载态。
-  if (isLoading) {
-    return (
-      <article className="dash-card">
-        <header className="dash-card-header">
-          <h2>Today</h2>
-          <span className="pill ghost">Top 3</span>
-        </header>
-        <p>Loading tasks...</p>
-      </article>
-    )
-  }
-
-  // 错误态。
-  if (error) {
-    return (
-      <article className="dash-card">
-        <header className="dash-card-header">
-          <h2>Today</h2>
-          <span className="pill ghost">Top 3</span>
-        </header>
-        <p>Could not load tasks.</p>
-      </article>
-    )
-  }
-
-  // 空态。
-  if (!tasks.length) {
-    return (
-      <article className="dash-card">
-        <header className="dash-card-header">
-          <h2>Today</h2>
-          <span className="pill ghost">Top 3</span>
-        </header>
-        <p>No tasks due. Add a task to get started.</p>
-      </article>
-    )
-  }
-
-  // 正常态。
+// Top 3 tasks for today.
+function TodayTasks() {
   return (
     <article className="dash-card">
       <header className="dash-card-header">
-        <h2>Today</h2>
+        <h2>今日待办</h2>
         <span className="pill ghost">Top 3</span>
       </header>
       <ul className="dash-list">
-        {tasks.map((task) => (
-          <li key={task.id}>
-            <span className="list-dot" />
-            {task.title}
-          </li>
-        ))}
+        <li>
+          <span className="list-dot" />
+          完成 30 分钟科目一练习
+        </li>
+        <li>
+          <span className="list-dot" />
+          准备报名材料清单
+        </li>
+        <li>
+          <span className="list-dot" />
+          预约周末练车时间
+        </li>
       </ul>
     </article>
   )
