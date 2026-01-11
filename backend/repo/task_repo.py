@@ -101,6 +101,8 @@ class TaskRepository:
         status: Optional[str] = None,
         due_before: Optional[date] = None,
         due_after: Optional[date] = None,
+        order_by: Optional[str] = None,
+        order_dir: str = "asc",
         include_relations: bool = False,
         outstanding_only: bool = False,
     ) -> list[Task]:
@@ -125,7 +127,7 @@ class TaskRepository:
                 selectinload(Task.goal),
             )
 
-        statement = statement.order_by(Task.due_date.asc(), Task.priority.desc())
+        statement = self._apply_sort(statement, order_by=order_by, order_dir=order_dir)
         return list(self.session.execute(statement).scalars().all())
 
     def update_task(self, task_id: UUID, updates: Mapping[str, object]) -> Optional[Task]:
@@ -206,3 +208,29 @@ class TaskRepository:
 
         self.session.flush()
         return goal
+
+    # ------------------------------------------------------------------ #
+    # Internal helpers
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _apply_sort(
+        statement: Select[Task],
+        *,
+        order_by: Optional[str],
+        order_dir: str,
+    ) -> Select[Task]:
+        direction = (order_dir or "asc").lower()
+        is_desc = direction == "desc"
+
+        if order_by == "priority":
+            column = Task.priority
+        elif order_by == "status":
+            column = Task.status
+        elif order_by == "title":
+            column = Task.title
+        else:
+            column = Task.due_date
+
+        if is_desc:
+            return statement.order_by(column.desc())
+        return statement.order_by(column.asc())

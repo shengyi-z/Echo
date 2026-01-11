@@ -73,3 +73,15 @@ class TaskOut(TaskBase):
     id: UUID
     goal_id: UUID
     milestone_id: UUID
+
+
+# Dependency payloads for ordering constraints between tasks.
+class DependencyCreate(SchemaBase):
+    from_task_id: UUID
+    to_task_id: UUID
+
+
+class DependencyOut(SchemaBase):
+    id: UUID
+    from_task_id: UUID
+    to_task_id: UUID

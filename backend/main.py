@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import chat, plans
+from .api import chat, goals, plans, tasks
 
 # App instance and global middleware.
 app = FastAPI(title="Echo API")
@@ -17,7 +17,9 @@ app.add_middleware(
 
 # Register routers.
 app.include_router(chat.router)
+app.include_router(goals.router)
 app.include_router(plans.router)
+app.include_router(tasks.router)
 
 # Basic health check.
 @app.get("/")

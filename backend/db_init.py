@@ -5,6 +5,7 @@ from .core.db import Base, engine, SessionLocal
 from models.goal import Goal
 from models.milestone import Milestone
 from models.task import Task
+from models.dependency import Dependency
 
 
 def init_db():

@@ -24,3 +24,13 @@ class Task(Base):
     # Relationships
     goal = relationship("Goal", back_populates="tasks")
     milestone = relationship("Milestone", back_populates="tasks")
+    outgoing_dependencies = relationship(
+        "Dependency",
+        foreign_keys="Dependency.from_task_id",
+        cascade="all, delete-orphan",
+    )
+    incoming_dependencies = relationship(
+        "Dependency",
+        foreign_keys="Dependency.to_task_id",
+        cascade="all, delete-orphan",
+    )
