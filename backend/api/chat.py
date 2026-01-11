@@ -1,55 +1,60 @@
 """
 Chat API - Handle user messages and communicate with Backboard AI
 """
+import os
+from typing import Optional
+
+import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import sys
-import os
-from typing import List, Optional
-import requests
 
-# 添加父目录到路径
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, parent_dir)
+from ..init_echo import ensure_assistant, create_thread, send_message
 
-from init_echo import ensure_assistant, create_thread, send_message
-
+# Router config and Backboard base URL.
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 BASE_URL = "https://app.backboard.io/api"
 
+# Request payload for sending a user message.
 class ChatRequest(BaseModel):
     message: str
     thread_id: str
     is_first_message: Optional[bool] = False
 
+# Response payload for a chat reply.
 class ChatResponse(BaseModel):
     content: str
     thread_id: str
     role: str = "assistant"
     suggested_title: Optional[str] = None
 
+# Response payload for init endpoint.
 class InitResponse(BaseModel):
     assistant_id: str
     thread_id: str
     message: str
 
+# Request payload for creating a new chat.
 class NewChatRequest(BaseModel):
     title: Optional[str] = None
 
+# Response payload for new chat creation.
 class NewChatResponse(BaseModel):
     thread_id: str
     title: str
     created_at: str
 
+# Request payload for updating chat titles.
 class UpdateTitleRequest(BaseModel):
     thread_id: str
     title: str
 
+# Response payload for updating chat titles.
 class UpdateTitleResponse(BaseModel):
     success: bool
     thread_id: str
     title: str
 
+# Ensure assistant exists and create a new thread.
 @router.post("/init", response_model=InitResponse)
 async def initialize_user():
     """
@@ -67,6 +72,7 @@ async def initialize_user():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
 
+# Create a new chat thread.
 @router.post("/new", response_model=NewChatResponse)
 async def create_new_chat(request: NewChatRequest):
     """
@@ -88,6 +94,7 @@ async def create_new_chat(request: NewChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"创建新对话失败: {str(e)}")
 
+# Send user message and return AI reply.
 @router.post("/send", response_model=ChatResponse)
 async def send_chat_message(request: ChatRequest):
     """
@@ -119,6 +126,7 @@ async def send_chat_message(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"发送消息失败: {str(e)}")
 
+# Update stored chat title (frontend-only for now).
 @router.post("/update-title", response_model=UpdateTitleResponse)
 async def update_chat_title(request: UpdateTitleRequest):
     """
@@ -133,6 +141,7 @@ async def update_chat_title(request: UpdateTitleRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"更新标题失败: {str(e)}")
 
+# Use AI to generate a short title from the first user message.
 async def generate_chat_title_with_ai(user_message: str) -> str:
     """
     使用 AI 根据用户第一条消息生成简短的对话标题
@@ -191,6 +200,7 @@ Reply with ONLY the title, nothing else."""
         print(f"AI title generation failed: {e}")
         return generate_simple_title(user_message)
 
+# Fallback: simple title generation when AI fails.
 def generate_simple_title(user_message: str) -> str:
     """
     备用方案：简单的标题生成

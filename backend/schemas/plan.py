@@ -19,6 +19,7 @@ class PlanGoalInput(BaseModel):
     title: str
     type: GoalType
     deadline: date
+    memory_id: Optional[str] = None
     budget: Optional[float] = None
     weekly_hours: Optional[int] = None
     preferences: Dict[str, object] = Field(default_factory=dict)

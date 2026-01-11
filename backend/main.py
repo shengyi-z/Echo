@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import chat  # 暂时只导入 chat
 
+from .api import chat, plans
+
+# App instance and global middleware.
 app = FastAPI(title="Echo API")
 
-# Enable CORS for frontend
+# Enable CORS for frontend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],  # Vite default port
@@ -13,9 +15,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers
+# Register routers.
 app.include_router(chat.router)
+app.include_router(plans.router)
 
+# Basic health check.
 @app.get("/")
 def read_root():
     return {"message": "Echo API is running"}
