@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from ..repo.goal_repo import GoalRepository
-from ..schemas.plan import PlanRequest, PlanResponse, PlanMilestone, PlanTask, PlanArtifact
+from ..schemas.plan import PlanRequest, PlanResponse, PlanMilestone, PlanTask, PlanArtifact, PlanInsights, PlanResource
 from .chat_service import ChatService
 
 
@@ -26,15 +26,16 @@ class PlanningService:
 
         if not request.thread_id:
             raise ValueError("thread_id is required to generate AI-based plan")
-        
+
         # Use memory_id from request if provided, otherwise use thread_id
         memory_id = request.memory_id or request.thread_id
         if not memory_id:
-            raise ValueError("memory_id or thread_id is required to store the plan")
+            raise ValueError(
+                "memory_id or thread_id is required to store the plan")
 
         # Step 1: Construct AI prompt for plan generation
         prompt = self._build_planning_prompt(request)
-        
+
         # Step 2: Call AI to generate the plan
         try:
             ai_response = await self.chat_service.send_message(
@@ -91,6 +92,9 @@ class PlanningService:
             for task in stored_goal.tasks
         ]
 
+        # Parse insights and resources from AI response
+        insights, resources = self._parse_insights_and_resources(ai_response)
+
         # Return a structured plan response for the client.
         return PlanResponse(
             date=date.today(),
@@ -98,6 +102,8 @@ class PlanningService:
             milestones=milestones,
             tasks=tasks,
             artifacts=[],
+            insights=insights,
+            resources=resources,
             message="✅ AI-generated plan created and stored successfully.",
             warnings=[],
         )
@@ -110,7 +116,7 @@ class PlanningService:
         goal = request.goal
         budget_str = f"${goal.budget}" if goal.budget else "灵活"
         hours_str = f"{goal.weekly_hours} 小时/周" if goal.weekly_hours else "灵活"
-        
+
         prompt = f"""
     我需要你帮我制定一个详细的、可执行的计划来达成以下目标：
 
@@ -120,6 +126,15 @@ class PlanningService:
     - 截止日期：{goal.deadline}
     - 预算：{budget_str}
     - 每周可投入时间：{hours_str}
+
+    **核心规则（重要）：**
+    1. 对于单个日程/事件：不要自行安排额外计划，只需列出该任务本身。可以针对该任务提出建议（recommendation）但不要主动添加相关任务。
+    2. 对于长期计划（如健身、学习等）：
+       - 需要根据用户的身体状况/背景知识来制定
+       - 提供一个简洁可行的长期安排框架
+       - 该框架必须足够灵活，用户可以根据实际情况调整
+       - 所有建议必须有科学依据支持
+       - 包含具体的调整指南（如感觉过度训练时如何调整）
 
     **任务要求：**
     1. 将这个目标拆解为 3-5 个关键里程碑（Milestones）
@@ -148,7 +163,7 @@ class PlanningService:
         ]
         }}
     ],
-    "insights": "关键见解和建议",
+    "insights": "关键见解和建议（包含科学依据和灵活调整指南）",
     "resources": ["资源链接1", "资源链接2"]
     }}
 
@@ -164,7 +179,8 @@ class PlanningService:
         """
         try:
             # Extract JSON from AI response (it might be wrapped in markdown code blocks)
-            json_match = re.search(r'```json\s*(.*?)\s*```', ai_response, re.DOTALL)
+            json_match = re.search(
+                r'```json\s*(.*?)\s*```', ai_response, re.DOTALL)
             if json_match:
                 json_str = json_match.group(1)
             else:
@@ -174,13 +190,13 @@ class PlanningService:
                     json_str = json_match.group(0)
                 else:
                     raise ValueError("No JSON found in AI response")
-            
+
             plan_data = json.loads(json_str)
             milestones = plan_data.get("milestones", [])
-            
+
             if not milestones:
                 raise ValueError("No milestones found in AI response")
-            
+
             # Convert AI format to database payload format
             milestones_payload = []
             for idx, milestone in enumerate(milestones, 1):
@@ -202,14 +218,75 @@ class PlanningService:
                     ]
                 }
                 milestones_payload.append(milestone_payload)
-            
+
             return milestones_payload
-            
+
         except Exception as e:
             print(f"⚠️ Failed to parse AI response: {e}")
             print(f"AI Response: {ai_response[:500]}...")
             # Fallback to default plan
             return self._build_milestones_payload(request)
+
+    # Parse insights and resources from AI response
+    def _parse_insights_and_resources(self, ai_response: str) -> tuple[Optional[PlanInsights], List[PlanResource]]:
+        """
+        Extract structured insights and resource links from AI response.
+        """
+        insights = None
+        resources = []
+
+        try:
+            # Try to extract JSON from AI response
+            json_match = re.search(
+                r'```json\s*(.*?)\s*```', ai_response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                else:
+                    # No JSON found, use raw text as insights
+                    insights = PlanInsights(raw_text=ai_response)
+                    return insights, resources
+
+            plan_data = json.loads(json_str)
+
+            # Extract insights
+            insights_data = plan_data.get("insights", {})
+            if isinstance(insights_data, str):
+                insights = PlanInsights(raw_text=insights_data)
+            elif isinstance(insights_data, dict):
+                insights = PlanInsights(
+                    overview=insights_data.get("overview"),
+                    key_points=insights_data.get("key_points", []),
+                    precautions=insights_data.get("precautions", []),
+                    progression_guidelines=insights_data.get(
+                        "progression_guidelines"),
+                    scientific_basis=insights_data.get("scientific_basis"),
+                    adjustments=insights_data.get("adjustments"),
+                    raw_text=insights_data.get("raw_text"),
+                )
+
+            # Extract resources
+            resources_data = plan_data.get("resources", [])
+            for resource in resources_data:
+                if isinstance(resource, str):
+                    resources.append(PlanResource(url=resource))
+                elif isinstance(resource, dict):
+                    resources.append(PlanResource(
+                        title=resource.get("title"),
+                        url=resource.get("url", ""),
+                        category=resource.get("category"),
+                    ))
+
+            return insights, resources
+
+        except Exception as e:
+            print(f"⚠️ Failed to parse insights and resources: {e}")
+            # Return raw text as fallback
+            insights = PlanInsights(raw_text=ai_response)
+            return insights, resources
 
     # Helper to parse date strings with fallback
     def _parse_date(self, date_str: Optional[str], fallback: date) -> date:
@@ -233,7 +310,8 @@ class PlanningService:
     def _build_milestones_payload(self, request: PlanRequest) -> List[Mapping[str, object]]:
         today = date.today()
         deadline = request.goal.deadline
-        target_date = self._clamp_date(min(deadline, today + timedelta(days=14)), today)
+        target_date = self._clamp_date(
+            min(deadline, today + timedelta(days=14)), today)
 
         tasks = self._default_tasks(deadline=deadline, today=today)
 
@@ -287,7 +365,7 @@ class PlanningService:
         goal = self.goal_repo.get_goal(goal_id, include_children=True)
         if not goal:
             return None
-        
+
         milestones = [
             PlanMilestone(
                 id=str(milestone.id),
@@ -309,13 +387,15 @@ class PlanningService:
             )
             for task in goal.tasks
         ]
-        
+
         return PlanResponse(
             date=date.today(),
             focus=goal.title,
             milestones=milestones,
             tasks=tasks,
             artifacts=[],
+            insights=None,
+            resources=[],
             message=f"Plan for '{goal.title}' retrieved.",
             warnings=[],
         )
@@ -328,7 +408,7 @@ class PlanningService:
         goal = self.goal_repo.get_goal(goal_id)
         if not goal:
             return False
-        
+
         goal.status = status
         self.session.commit()
         return True
@@ -341,19 +421,19 @@ class PlanningService:
         goal = self.goal_repo.get_goal(goal_id, include_children=True)
         if not goal:
             return []
-        
+
         # Filter incomplete tasks and sort by priority and due date
         incomplete_tasks = [
-            task for task in goal.tasks 
+            task for task in goal.tasks
             if task.status != "completed"
         ]
-        
+
         # Priority ranking
         priority_order = {"high": 0, "medium": 1, "low": 2}
         incomplete_tasks.sort(
             key=lambda t: (priority_order.get(t.priority, 3), t.due_date)
         )
-        
+
         return [
             PlanTask(
                 id=str(task.id),
