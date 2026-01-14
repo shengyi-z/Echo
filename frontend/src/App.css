@@ -74,6 +74,26 @@
   cursor: pointer;
 }
 
+/* 侧边栏搜索 */
+.chat-search {
+  display: grid;
+  gap: 6px;
+}
+
+.chat-search input {
+  width: 100%;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--sidebar-chip);
+  color: var(--sidebar-text);
+  font: inherit;
+}
+
+.chat-search input::placeholder {
+  color: var(--sidebar-muted);
+}
+
 /* Chat history list */
 .history-list {
   display: flex;
@@ -1021,4 +1041,60 @@
 .history-title-edit:focus {
   outline: none;
   border-color: var(--accent-deep);
+}
+
+/* 打印样式：仅保留对话内容 */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .sidebar,
+  .chat-input,
+  .ghost-button,
+  .menu-button,
+  .history-menu {
+    display: none !important;
+  }
+
+  .app-shell {
+    background: none;
+  }
+
+  /* 打印页面留白与色彩保留 */
+  @page {
+    margin: 16mm;
+  }
+
+  html, body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .chat-panel {
+    padding: 12mm;
+    height: auto;
+    background: none;
+  }
+
+  .chat-header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dcdcdc;
+  }
+
+  .message-bubble {
+    border: 1px solid #e4e4e4;
+    box-shadow: none;
+  }
+
+  .chat-message.user .message-bubble {
+    background: #111827;
+    color: #fff;
+  }
+
+  .chat-scroll {
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
 }

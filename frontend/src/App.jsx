@@ -32,6 +32,7 @@ function App() {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
   const [chatOrder, setChatOrder] = useState([])
+  const [chatSearch, setChatSearch] = useState('')
   const chatScrollRef = useRef(null)
 
   // 鑷姩婊氬姩鍒版渶鏂版秷鎭?
@@ -388,6 +389,11 @@ function App() {
     console.log('Chat pin toggled:', threadId)
   }
 
+  // 打印当前对话记录。
+  const handleExport = () => {
+    window.print()
+  }
+
   // Sidebar drag ordering (display only).
   const handleReorderChats = (nextOrder) => {
     setChatOrder(nextOrder)
@@ -403,12 +409,25 @@ function App() {
     isPinned: session.isPinned || false
   }))
 
+  // 根据搜索词过滤对话（标题/预览/内容）。
+  const filteredChatHistoryItems = (() => {
+    const query = chatSearch.trim().toLowerCase()
+    if (!query) return chatHistoryItems
+    const sessionById = new Map(chatSessions.map(session => [session.thread_id, session]))
+    return chatHistoryItems.filter(item => {
+      const session = sessionById.get(item.thread_id)
+      const content = session?.messages?.map(message => message.content).join(' ') || ''
+      const haystack = `${item.title} ${item.preview} ${content}`.toLowerCase()
+      return haystack.includes(query)
+    })
+  })()
+
   const currentChatTitle = chatSessions.find(s => s.thread_id === currentThreadId)?.title || 'Chat'
 
   return (
     <div className={`app-shell ${isSmallScreen && isSidebarOpen ? 'mobile-open' : ''}`}>
       <Sidebar
-        items={chatHistoryItems}
+        items={filteredChatHistoryItems}
         order={chatOrder}
         onReorder={handleReorderChats}
         onSelectChat={handleSelectChat}
@@ -418,6 +437,8 @@ function App() {
         onPinChat={handlePinChat}
         onOpenDashboard={() => setActiveView('dashboard')}
         onOpenCalendar={() => setActiveView('calendar')}
+        searchValue={chatSearch}
+        onSearchChange={setChatSearch}
         isOpen={!isSmallScreen || isSidebarOpen}
         isSmallScreen={isSmallScreen}
         onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
@@ -474,7 +495,7 @@ function App() {
                 )}
                 <p>Long term goals, broken into weekly steps.</p>
               </div>
-              <button className="ghost-button">Export</button>
+              <button className="ghost-button" onClick={handleExport}>Export</button>
             </header>
 
             <section className="chat-scroll" ref={chatScrollRef}>

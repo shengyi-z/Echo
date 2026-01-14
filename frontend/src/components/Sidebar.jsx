@@ -13,6 +13,8 @@ function Sidebar({
   onPinChat,
   onOpenCalendar,
   onOpenDashboard,
+  searchValue,
+  onSearchChange,
   isOpen,
   isSmallScreen,
   onToggleMenu,
@@ -104,6 +106,16 @@ function Sidebar({
           <div className="logo-mark">Echo</div>
         )}
         <button className="new-chat" onClick={onNewChat}>New Chat</button>
+        {/* 搜索对话 */}
+        <div className="chat-search">
+          <input
+            type="text"
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Search chats"
+            aria-label="Search chats"
+          />
+        </div>
       </div>
       <div className="history-list" onDragOver={(event) => event.preventDefault()} onDrop={handleDropOnList}>
         {sortedItems.map((item) => (
