@@ -5,10 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
 
-from core.db import get_db
-from models.milestone import Milestone
-from repo.goal_repo import GoalRepository
-from schemas.goal import (
+from ..core.db import get_db
+from ..models.milestone import Milestone
+from ..repo.goal_repo import GoalRepository
+from ..schemas.goal import (
     GoalCreate,
     GoalOut,
     GoalUpdate,
@@ -49,7 +49,8 @@ def create_goal(payload: GoalCreate, db: Session = Depends(get_db)) -> GoalOut:
 
     stored_goal = repo.get_goal(goal.id, include_children=True)
     if not stored_goal:
-        raise HTTPException(status_code=500, detail="Failed to load created goal.")
+        raise HTTPException(
+            status_code=500, detail="Failed to load created goal.")
     return stored_goal
 
 
@@ -94,7 +95,8 @@ def update_goal(
 ) -> GoalOut:
     repo = GoalRepository(db)
     updates = _model_dump(payload)
-    updates = {key: value for key, value in updates.items() if value is not None}
+    updates = {key: value for key,
+               value in updates.items() if value is not None}
 
     if "type" in updates and hasattr(updates["type"], "value"):
         updates["type"] = updates["type"].value
@@ -108,7 +110,8 @@ def update_goal(
 
     stored_goal = repo.get_goal(goal_id, include_children=True)
     if not stored_goal:
-        raise HTTPException(status_code=500, detail="Failed to load updated goal.")
+        raise HTTPException(
+            status_code=500, detail="Failed to load updated goal.")
     return stored_goal
 
 
@@ -171,7 +174,8 @@ def update_goal_milestone(
         raise HTTPException(status_code=404, detail="Milestone not found.")
 
     updates = _model_dump(payload)
-    updates = {key: value for key, value in updates.items() if value is not None}
+    updates = {key: value for key,
+               value in updates.items() if value is not None}
     if "status" in updates:
         updates["status"] = updates["status"].value
 

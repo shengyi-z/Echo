@@ -23,14 +23,14 @@ class ReminderService:
     - AI 辅助的智能提醒内容生成
     - 提醒优先级管理
     """
-    
+
     def __init__(self, session: Session):
         self.session = session
         self.goal_repo = GoalRepository(session)
         self.chat_service = ChatService()
-    
+
     # ==================== 提醒 CRUD 操作 ====================
-    
+
     def create_reminder(
         self,
         title: str,
@@ -55,19 +55,19 @@ class ReminderService:
             milestone_id=str(milestone_id) if milestone_id else None,
             task_id=str(task_id) if task_id else None,
         )
-        
+
         self.session.add(reminder)
         self.session.commit()
         self.session.refresh(reminder)
-        
+
         return reminder
-    
+
     def get_reminder(self, reminder_id: str) -> Optional[Reminder]:
         """获取特定提醒"""
         return self.session.query(Reminder).filter(
             Reminder.id == reminder_id
         ).first()
-    
+
     def get_pending_reminders(
         self,
         before: Optional[datetime] = None,
@@ -75,14 +75,14 @@ class ReminderService:
     ) -> List[Reminder]:
         """
         获取待处理的提醒（未读且未完成）
-        
+
         Args:
             before: 获取此时间之前的提醒（默认当前时间）
             limit: 最大返回数量
         """
         if before is None:
             before = datetime.utcnow()
-        
+
         reminders = self.session.query(Reminder).filter(
             and_(
                 Reminder.remind_at <= before,
@@ -93,9 +93,9 @@ class ReminderService:
             Reminder.priority.desc(),
             Reminder.remind_at.asc()
         ).limit(limit).all()
-        
+
         return reminders
-    
+
     def get_upcoming_reminders(
         self,
         hours_ahead: int = 24,
@@ -106,7 +106,7 @@ class ReminderService:
         """
         now = datetime.utcnow()
         future = now + timedelta(hours=hours_ahead)
-        
+
         reminders = self.session.query(Reminder).filter(
             and_(
                 Reminder.remind_at.between(now, future),
@@ -116,52 +116,52 @@ class ReminderService:
         ).order_by(
             Reminder.remind_at.asc()
         ).limit(limit).all()
-        
+
         return reminders
-    
+
     def mark_as_read(self, reminder_id: str) -> bool:
         """标记提醒为已读"""
         reminder = self.get_reminder(reminder_id)
         if not reminder:
             return False
-        
+
         reminder.is_read = True
         self.session.commit()
         return True
-    
+
     def mark_as_completed(self, reminder_id: str) -> bool:
         """标记提醒为已完成"""
         reminder = self.get_reminder(reminder_id)
         if not reminder:
             return False
-        
+
         reminder.is_completed = True
         reminder.is_read = True
         self.session.commit()
         return True
-    
+
     def dismiss_reminder(self, reminder_id: str) -> bool:
         """忽略/取消提醒"""
         reminder = self.get_reminder(reminder_id)
         if not reminder:
             return False
-        
+
         reminder.is_dismissed = True
         self.session.commit()
         return True
-    
+
     def delete_reminder(self, reminder_id: str) -> bool:
         """删除提醒"""
         reminder = self.get_reminder(reminder_id)
         if not reminder:
             return False
-        
+
         self.session.delete(reminder)
         self.session.commit()
         return True
-    
+
     # ==================== 自动提醒生成 ====================
-    
+
     def generate_task_reminders(
         self,
         task_id: UUID,
@@ -169,28 +169,28 @@ class ReminderService:
     ) -> List[Reminder]:
         """
         为任务自动创建提前提醒
-        
+
         Args:
             task_id: 任务 ID
             advance_days: 提前几天提醒（默认：1天、3天、7天前）
-        
+
         Returns:
             创建的提醒列表
         """
         task = self.session.query(Task).filter(Task.id == task_id).first()
         if not task or not task.due_date:
             return []
-        
+
         reminders = []
         due_datetime = datetime.combine(task.due_date, datetime.min.time())
-        
+
         for days in advance_days:
             remind_at = due_datetime - timedelta(days=days)
-            
+
             # 不创建过去的提醒
             if remind_at < datetime.utcnow():
                 continue
-            
+
             # 检查是否已存在相同的提醒
             existing = self.session.query(Reminder).filter(
                 and_(
@@ -199,10 +199,10 @@ class ReminderService:
                     Reminder.remind_at == remind_at
                 )
             ).first()
-            
+
             if existing:
                 continue
-            
+
             # 确定优先级
             if days == 1:
                 priority = ReminderPriority.URGENT
@@ -210,7 +210,7 @@ class ReminderService:
                 priority = ReminderPriority.HIGH
             else:
                 priority = ReminderPriority.MEDIUM
-            
+
             reminder = self.create_reminder(
                 title=f"任务即将到期: {task.title}",
                 message=f"任务「{task.title}」将在 {days} 天后到期（{task.due_date.strftime('%Y-%m-%d')}）",
@@ -221,9 +221,9 @@ class ReminderService:
                 task_id=task_id
             )
             reminders.append(reminder)
-        
+
         return reminders
-    
+
     def generate_milestone_reminders(
         self,
         milestone_id: UUID,
@@ -235,19 +235,20 @@ class ReminderService:
         milestone = self.session.query(Milestone).filter(
             Milestone.id == milestone_id
         ).first()
-        
+
         if not milestone or not milestone.target_date:
             return []
-        
+
         reminders = []
-        target_datetime = datetime.combine(milestone.target_date, datetime.min.time())
-        
+        target_datetime = datetime.combine(
+            milestone.target_date, datetime.min.time())
+
         for days in advance_days:
             remind_at = target_datetime - timedelta(days=days)
-            
+
             if remind_at < datetime.utcnow():
                 continue
-            
+
             existing = self.session.query(Reminder).filter(
                 and_(
                     Reminder.milestone_id == str(milestone_id),
@@ -255,17 +256,17 @@ class ReminderService:
                     Reminder.remind_at == remind_at
                 )
             ).first()
-            
+
             if existing:
                 continue
-            
+
             if days <= 3:
                 priority = ReminderPriority.URGENT
             elif days <= 7:
                 priority = ReminderPriority.HIGH
             else:
                 priority = ReminderPriority.MEDIUM
-            
+
             reminder = self.create_reminder(
                 title=f"里程碑即将到期: {milestone.title}",
                 message=f"里程碑「{milestone.title}」将在 {days} 天后到期（{milestone.target_date.strftime('%Y-%m-%d')}）",
@@ -276,9 +277,9 @@ class ReminderService:
                 milestone_id=milestone_id
             )
             reminders.append(reminder)
-        
+
         return reminders
-    
+
     def generate_goal_deadline_reminders(
         self,
         goal_id: UUID,
@@ -290,16 +291,17 @@ class ReminderService:
         goal = self.goal_repo.get_goal(goal_id)
         if not goal or not goal.deadline:
             return []
-        
+
         reminders = []
-        deadline_datetime = datetime.combine(goal.deadline, datetime.min.time())
-        
+        deadline_datetime = datetime.combine(
+            goal.deadline, datetime.min.time())
+
         for days in advance_days:
             remind_at = deadline_datetime - timedelta(days=days)
-            
+
             if remind_at < datetime.utcnow():
                 continue
-            
+
             existing = self.session.query(Reminder).filter(
                 and_(
                     Reminder.goal_id == str(goal_id),
@@ -307,17 +309,17 @@ class ReminderService:
                     Reminder.remind_at == remind_at
                 )
             ).first()
-            
+
             if existing:
                 continue
-            
+
             if days <= 7:
                 priority = ReminderPriority.URGENT
             elif days <= 14:
                 priority = ReminderPriority.HIGH
             else:
                 priority = ReminderPriority.MEDIUM
-            
+
             reminder = self.create_reminder(
                 title=f"目标截止日期临近: {goal.title}",
                 message=f"目标「{goal.title}」将在 {days} 天后到期（{goal.deadline.strftime('%Y-%m-%d')}）",
@@ -327,9 +329,9 @@ class ReminderService:
                 goal_id=goal_id
             )
             reminders.append(reminder)
-        
+
         return reminders
-    
+
     def auto_generate_reminders_for_goal(self, goal_id: UUID) -> Dict[str, List[Reminder]]:
         """
         为目标自动生成所有相关提醒（目标、里程碑、任务）
@@ -337,30 +339,31 @@ class ReminderService:
         goal = self.goal_repo.get_goal(goal_id, include_children=True)
         if not goal:
             return {}
-        
+
         result = {
             "goal_reminders": [],
             "milestone_reminders": [],
             "task_reminders": []
         }
-        
+
         # 目标截止日期提醒
-        result["goal_reminders"] = self.generate_goal_deadline_reminders(goal_id)
-        
+        result["goal_reminders"] = self.generate_goal_deadline_reminders(
+            goal_id)
+
         # 里程碑提醒
         for milestone in goal.milestones:
             reminders = self.generate_milestone_reminders(milestone.id)
             result["milestone_reminders"].extend(reminders)
-        
+
         # 任务提醒
         for task in goal.tasks:
             reminders = self.generate_task_reminders(task.id)
             result["task_reminders"].extend(reminders)
-        
+
         return result
-    
+
     # ==================== 每日简报和周度总结 ====================
-    
+
     async def generate_daily_briefing(
         self,
         thread_id: str,
@@ -368,7 +371,7 @@ class ReminderService:
     ) -> Dict[str, Any]:
         """
         生成每日简报
-        
+
         包含：
         - 今日到期的任务
         - 即将到来的里程碑
@@ -377,7 +380,7 @@ class ReminderService:
         """
         if target_date is None:
             target_date = date.today()
-        
+
         # 获取今日到期的任务
         today_tasks = self.session.query(Task).filter(
             and_(
@@ -385,7 +388,7 @@ class ReminderService:
                 Task.status != "completed"
             )
         ).all()
-        
+
         # 获取本周到期的里程碑
         week_end = target_date + timedelta(days=7)
         upcoming_milestones = self.session.query(Milestone).filter(
@@ -394,7 +397,7 @@ class ReminderService:
                 Milestone.status != "completed"
             )
         ).all()
-        
+
         # 获取逾期任务
         overdue_tasks = self.session.query(Task).filter(
             and_(
@@ -402,7 +405,7 @@ class ReminderService:
                 Task.status != "completed"
             )
         ).all()
-        
+
         briefing = {
             "date": target_date.isoformat(),
             "today_tasks": [
@@ -432,13 +435,13 @@ class ReminderService:
                 for task in overdue_tasks
             ],
         }
-        
+
         # 使用 AI 生成每日建议
         ai_briefing = await self._generate_ai_daily_briefing(briefing, thread_id)
         briefing["ai_summary"] = ai_briefing
-        
+
         return briefing
-    
+
     async def generate_weekly_summary(
         self,
         thread_id: str,
@@ -446,7 +449,7 @@ class ReminderService:
     ) -> Dict[str, Any]:
         """
         生成周度总结
-        
+
         包含：
         - 本周完成的任务统计
         - 本周完成的里程碑
@@ -457,9 +460,9 @@ class ReminderService:
             # 默认从本周一开始
             today = date.today()
             week_start = today - timedelta(days=today.weekday())
-        
+
         week_end = week_start + timedelta(days=6)
-        
+
         # 本周完成的任务
         completed_tasks = self.session.query(Task).filter(
             and_(
@@ -467,7 +470,7 @@ class ReminderService:
                 Task.due_date.between(week_start, week_end)
             )
         ).all()
-        
+
         # 本周完成的里程碑
         completed_milestones = self.session.query(Milestone).filter(
             and_(
@@ -475,11 +478,11 @@ class ReminderService:
                 Milestone.target_date.between(week_start, week_end)
             )
         ).all()
-        
+
         # 下周的重点任务
         next_week_start = week_end + timedelta(days=1)
         next_week_end = next_week_start + timedelta(days=6)
-        
+
         next_week_tasks = self.session.query(Task).filter(
             and_(
                 Task.due_date.between(next_week_start, next_week_end),
@@ -490,7 +493,7 @@ class ReminderService:
                 )
             )
         ).order_by(Task.due_date.asc()).all()
-        
+
         summary = {
             "week_start": week_start.isoformat(),
             "week_end": week_end.isoformat(),
@@ -522,13 +525,13 @@ class ReminderService:
                 for task in next_week_tasks[:10]  # 最多显示 10 个
             ]
         }
-        
+
         # AI 生成周度分析
         ai_summary = await self._generate_ai_weekly_summary(summary, thread_id)
         summary["ai_analysis"] = ai_summary
-        
+
         return summary
-    
+
     def schedule_daily_briefing(self, remind_time: datetime) -> Reminder:
         """
         安排每日简报提醒
@@ -540,7 +543,7 @@ class ReminderService:
             type=ReminderType.DAILY_BRIEFING,
             priority=ReminderPriority.HIGH
         )
-    
+
     def schedule_weekly_summary(self, remind_time: datetime) -> Reminder:
         """
         安排周度总结提醒
@@ -552,9 +555,9 @@ class ReminderService:
             type=ReminderType.WEEKLY_SUMMARY,
             priority=ReminderPriority.MEDIUM
         )
-    
+
     # ==================== 智能提醒内容生成 ====================
-    
+
     async def generate_smart_reminder_message(
         self,
         task_id: UUID,
@@ -566,9 +569,9 @@ class ReminderService:
         task = self.session.query(Task).filter(Task.id == task_id).first()
         if not task:
             return "任务不存在"
-        
+
         goal = self.goal_repo.get_goal(task.goal_id) if task.goal_id else None
-        
+
         prompt = f"""
 请为以下任务生成一条友好、激励性的提醒消息：
 
@@ -589,7 +592,7 @@ class ReminderService:
 提醒：[你的提醒语]
 建议：[你的建议]
 """
-        
+
         try:
             response = await self.chat_service.send_message(
                 content=prompt,
@@ -600,9 +603,9 @@ class ReminderService:
         except Exception as e:
             print(f"❌ AI 提醒生成失败: {e}")
             return f"记得完成任务：{task.title}"
-    
+
     # ==================== 私有辅助方法 ====================
-    
+
     async def _generate_ai_daily_briefing(
         self,
         briefing: Dict[str, Any],
@@ -628,7 +631,7 @@ class ReminderService:
 
 保持简洁、友好、可执行。
 """
-        
+
         try:
             response = await self.chat_service.send_message(
                 content=prompt,
@@ -639,7 +642,7 @@ class ReminderService:
         except Exception as e:
             print(f"❌ AI 简报生成失败: {e}")
             return "今天也要加油哦！"
-    
+
     async def _generate_ai_weekly_summary(
         self,
         summary: Dict[str, Any],
@@ -663,7 +666,7 @@ class ReminderService:
 
 保持积极、鼓舞人心。
 """
-        
+
         try:
             response = await self.chat_service.send_message(
                 content=prompt,
@@ -674,34 +677,34 @@ class ReminderService:
         except Exception as e:
             print(f"❌ AI 总结生成失败: {e}")
             return "本周辛苦了，下周继续努力！"
-    
+
     def _format_tasks_for_ai(self, tasks: List[Dict[str, Any]]) -> str:
         """格式化任务列表用于 AI 提示"""
         if not tasks:
             return "无"
-        
+
         formatted = []
         for task in tasks[:5]:  # 最多显示 5 个
             formatted.append(f"- {task['title']}")
         return "\n".join(formatted)
-    
+
     def _format_milestones_for_ai(self, milestones: List[Dict[str, Any]]) -> str:
         """格式化里程碑列表用于 AI 提示"""
         if not milestones:
             return "无"
-        
+
         formatted = []
         for milestone in milestones:
             formatted.append(
                 f"- {milestone['title']} ({milestone['days_until']} 天后)"
             )
         return "\n".join(formatted)
-    
+
     def _format_overdue_for_ai(self, overdue: List[Dict[str, Any]]) -> str:
         """格式化逾期任务列表用于 AI 提示"""
         if not overdue:
             return "无"
-        
+
         formatted = []
         for task in overdue[:5]:
             formatted.append(

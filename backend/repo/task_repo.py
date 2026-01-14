@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
-from models.goal import Goal
-from models.milestone import Milestone
-from models.task import Task
+from ..models.goal import Goal
+from ..models.milestone import Milestone
+from ..models.task import Task
 
 
 class TaskRepository:
@@ -127,7 +127,8 @@ class TaskRepository:
                 selectinload(Task.goal),
             )
 
-        statement = self._apply_sort(statement, order_by=order_by, order_dir=order_dir)
+        statement = self._apply_sort(
+            statement, order_by=order_by, order_dir=order_dir)
         return list(self.session.execute(statement).scalars().all())
 
     def update_task(self, task_id: UUID, updates: Mapping[str, object]) -> Optional[Task]:

@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-from core.db import Base
+from ..core.db import Base
 
 
 class Task(Base):
@@ -13,8 +13,10 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    goal_id = Column(UUID(as_uuid=True), ForeignKey("goals.id"), nullable=False)
-    milestone_id = Column(UUID(as_uuid=True), ForeignKey("milestones.id"), nullable=False)
+    goal_id = Column(UUID(as_uuid=True), ForeignKey(
+        "goals.id"), nullable=False)
+    milestone_id = Column(UUID(as_uuid=True), ForeignKey(
+        "milestones.id"), nullable=False)
     title = Column(String, nullable=False)
     due_date = Column(Date, nullable=False)
     priority = Column(String, nullable=False, default="medium")
@@ -24,7 +26,8 @@ class Task(Base):
     # Relationships
     goal = relationship("Goal", back_populates="tasks")
     milestone = relationship("Milestone", back_populates="tasks")
-    reminders = relationship("Reminder", back_populates="task", cascade="all, delete-orphan")
+    reminders = relationship(
+        "Reminder", back_populates="task", cascade="all, delete-orphan")
     outgoing_dependencies = relationship(
         "Dependency",
         foreign_keys="Dependency.from_task_id",

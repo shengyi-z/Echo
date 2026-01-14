@@ -5,11 +5,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from core.db import get_db
-from models.dependency import Dependency
-from models.task import Task
-from repo.task_repo import TaskRepository
-from schemas.task import (
+from ..core.db import get_db
+from ..models.dependency import Dependency
+from ..models.task import Task
+from ..repo.task_repo import TaskRepository
+from ..schemas.task import (
     DependencyCreate,
     DependencyOut,
     TaskCreate,
@@ -84,7 +84,8 @@ def get_task(task_id: UUID, db: Session = Depends(get_db)) -> TaskOut:
 def update_task(task_id: UUID, payload: TaskUpdate, db: Session = Depends(get_db)) -> TaskOut:
     repo = TaskRepository(db)
     updates = _model_dump(payload)
-    updates = {key: value for key, value in updates.items() if value is not None}
+    updates = {key: value for key,
+               value in updates.items() if value is not None}
 
     if "priority" in updates and hasattr(updates["priority"], "value"):
         updates["priority"] = updates["priority"].value
@@ -113,7 +114,8 @@ def delete_task(task_id: UUID, db: Session = Depends(get_db)) -> Mapping[str, bo
 @router.post("/dependencies", response_model=DependencyOut)
 def create_dependency(payload: DependencyCreate, db: Session = Depends(get_db)) -> DependencyOut:
     if payload.from_task_id == payload.to_task_id:
-        raise HTTPException(status_code=400, detail="A task cannot depend on itself.")
+        raise HTTPException(
+            status_code=400, detail="A task cannot depend on itself.")
 
     from_task = db.get(Task, payload.from_task_id)
     to_task = db.get(Task, payload.to_task_id)
@@ -129,7 +131,8 @@ def create_dependency(payload: DependencyCreate, db: Session = Depends(get_db)) 
         .first()
     )
     if exists:
-        raise HTTPException(status_code=409, detail="Dependency already exists.")
+        raise HTTPException(
+            status_code=409, detail="Dependency already exists.")
 
     dependency = Dependency(
         from_task_id=payload.from_task_id,
@@ -151,7 +154,8 @@ def list_dependencies(task_id: UUID, db: Session = Depends(get_db)) -> List[Depe
     return list(
         db.query(Dependency)
         .filter(
-            (Dependency.from_task_id == task_id) | (Dependency.to_task_id == task_id)
+            (Dependency.from_task_id == task_id) | (
+                Dependency.to_task_id == task_id)
         )
         .all()
     )

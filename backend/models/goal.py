@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-from core.db import Base
+from ..core.db import Base
 
 
 class Goal(Base):
@@ -22,6 +22,9 @@ class Goal(Base):
     status = Column(String, nullable=False, default="not-started")
 
     # Relationships
-    milestones = relationship("Milestone", back_populates="goal", cascade="all, delete-orphan")
-    tasks = relationship("Task", back_populates="goal", cascade="all, delete-orphan")
-    reminders = relationship("Reminder", back_populates="goal", cascade="all, delete-orphan")
+    milestones = relationship(
+        "Milestone", back_populates="goal", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="goal",
+                         cascade="all, delete-orphan")
+    reminders = relationship(
+        "Reminder", back_populates="goal", cascade="all, delete-orphan")
