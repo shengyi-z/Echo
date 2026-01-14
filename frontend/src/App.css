@@ -483,6 +483,14 @@
   border-bottom: 1px solid var(--divider);
 }
 
+.calendar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .calendar-actions {
   display: flex;
   align-items: center;
@@ -515,6 +523,31 @@
   background: var(--surface-raised);
   color: var(--text-primary);
   box-shadow: var(--shadow-soft);
+}
+
+/* 年月跳转控件 */
+.calendar-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.calendar-field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.calendar-field input,
+.calendar-field select {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  min-width: 120px;
 }
 
 /* 日历主内容区 */
@@ -659,6 +692,7 @@
   padding-left: 18px;
   display: grid;
   gap: 16px;
+  align-content: start;
 }
 
 .timeline-header {
@@ -672,6 +706,7 @@
 .timeline-list {
   display: grid;
   gap: 12px;
+  align-content: start;
 }
 
 .timeline-item {
@@ -885,6 +920,10 @@
     padding-top: 16px;
   }
 
+  .calendar-top {
+    align-items: flex-start;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -936,6 +975,11 @@
   /* 日历在小屏收紧间距 */
   .calendar-content {
     gap: 16px;
+  }
+
+  .calendar-top {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .month-grid {
