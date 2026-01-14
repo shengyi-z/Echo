@@ -37,6 +37,7 @@ class PlanningService:
         prompt = self._build_planning_prompt(request)
 
         # Step 2: Call AI to generate the plan
+        ai_response = None
         try:
             ai_response = await self.chat_service.send_message(
                 content=prompt,
@@ -93,7 +94,11 @@ class PlanningService:
         ]
 
         # Parse insights and resources from AI response
-        insights, resources = self._parse_insights_and_resources(ai_response)
+        if ai_response:
+            insights, resources = self._parse_insights_and_resources(
+                ai_response)
+        else:
+            insights, resources = None, []
 
         # Return a structured plan response for the client.
         return PlanResponse(
