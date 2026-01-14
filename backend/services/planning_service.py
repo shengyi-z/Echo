@@ -111,14 +111,15 @@ class PlanningService:
     # Construct the prompt to send to AI for plan generation
     def _build_planning_prompt(self, request: PlanRequest) -> str:
         """
-        Build a detailed prompt for the AI to generate a structured plan.
+        Build a detailed prompt for the AI to generate a structured plan with clear timeline.
         """
         goal = request.goal
         budget_str = f"${goal.budget}" if goal.budget else "灵活"
         hours_str = f"{goal.weekly_hours} 小时/周" if goal.weekly_hours else "灵活"
+        today = date.today().strftime("%Y-%m-%d")
 
         prompt = f"""
-    我需要你帮我制定一个详细的、可执行的计划来达成以下目标：
+    我需要你帮我制定一个**详细的、可执行的、有清晰时间线的计划**来达成以下目标：
 
     **目标信息：**
     - 标题：{goal.title}
@@ -126,6 +127,7 @@ class PlanningService:
     - 截止日期：{goal.deadline}
     - 预算：{budget_str}
     - 每周可投入时间：{hours_str}
+    - 今天的日期：{today}
 
     **核心规则（重要）：**
     1. 对于单个日程/事件：不要自行安排额外计划，只需列出该任务本身。可以针对该任务提出建议（recommendation）但不要主动添加相关任务。
@@ -135,39 +137,53 @@ class PlanningService:
        - 该框架必须足够灵活，用户可以根据实际情况调整
        - 所有建议必须有科学依据支持
        - 包含具体的调整指南（如感觉过度训练时如何调整）
+    3. **重要：所有日期必须是具体的日期（YYYY-MM-DD格式），且从{today}开始合理递增。不要使用相对时间如"Week 1"，只能用作描述性标签。**
 
     **任务要求：**
-    1. 将这个目标拆解为 3-5 个关键里程碑（Milestones）
+    1. 将这个目标拆解为 3-5 个关键里程碑（Milestones），每个里程碑有明确的起始和截止日期
     2. 为每个里程碑定义清晰的完成标准（Definition of Done）
-    3. 为前 2-3 个里程碑创建具体的、可执行的任务（Tasks）
+    3. 为前 2-3 个里程碑创建 5-8 个具体的、可执行的任务（Tasks），每个任务有具体的due_date
     4. 使用你的 web search 工具查找相关资源、最佳实践和建议
     5. 考虑用户的预算和时间限制
+    6. 所有任务的due_date必须在对应里程碑的target_date之前或相等
 
-    **输出格式：**
+    **输出格式（严格按照此格式）：**
     请以 JSON 格式返回计划，结构如下：
 
     {{
     "milestones": [
         {{
-        "title": "里程碑标题",
-        "target_date": "YYYY-MM-DD",
+        "title": "里程碑标题（带周期说明，如：第1周 - 基础建立）",
+        "target_date": "YYYY-MM-DD（具体日期）",
         "definition_of_done": "完成标准描述",
         "order": 1,
         "tasks": [
             {{
             "title": "任务标题",
-            "due_date": "YYYY-MM-DD",
+            "due_date": "YYYY-MM-DD（具体日期，不超过target_date）",
             "priority": "high/medium/low",
             "estimated_time": 2.5
             }}
         ]
         }}
     ],
-    "insights": "关键见解和建议（包含科学依据和灵活调整指南）",
-    "resources": ["资源链接1", "资源链接2"]
+    "insights": {{
+        "overview": "计划总体概述和关键目标",
+        "key_points": ["关键点1", "关键点2", "关键点3"],
+        "progression_guidelines": "逐周或逐阶段的详细进展指南，包括每个阶段的时间范围",
+        "scientific_basis": "科学依据和最佳实践引用",
+        "adjustments": "灵活调整指南"
+    }},
+    "resources": [
+        {{"title": "资源标题", "url": "https://...", "category": "category_name"}}
+    ]
     }}
 
-    请确保日期合理，任务具体可行，并提供有价值的建议和资源链接。
+    请确保：
+    - 所有日期都是具体的YYYY-MM-DD格式
+    - 日期合理递增，从{today}开始
+    - 任务可执行且具体
+    - 时间线清晰，适合显示在日历上
     """
         return prompt
 
