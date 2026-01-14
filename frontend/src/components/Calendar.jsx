@@ -23,6 +23,40 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
     window.print()
   }
 
+  // 生成并下载日历文件（ICS）。
+  const handleDownload = () => {
+    const pad = (value) => String(value).padStart(2, '0')
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Echo//Calendar Export//EN',
+    ]
+
+    EVENTS.forEach((event, index) => {
+      const [year, month, day] = event.date.split('-')
+      const stamp = `${year}${month}${day}T090000Z`
+      const uid = `echo-${year}${month}${day}-${index}@echo`
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART:${year}${month}${day}T090000Z`,
+        `DTEND:${year}${month}${day}T100000Z`,
+        `SUMMARY:${event.title}`,
+        'END:VEVENT'
+      )
+    })
+
+    lines.push('END:VCALENDAR')
+    const blob = new Blob([lines.join('\n')], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `calendar-${selectedYear}.ics`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
   // 过滤出当前年月的事件。
   const filteredEvents = useMemo(() => {
     return EVENTS.filter((event) => {
@@ -113,15 +147,20 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
             </label>
           </div>
         </div>
-        {/* 标题与打印按钮同行 */}
+        {/* 标题与操作按钮同行 */}
         <div className="calendar-title-row">
           <div className="calendar-title">
             <h1>Calendar</h1>
             <p>Plan milestones and see upcoming focus windows.</p>
           </div>
-          <button className="ghost-button calendar-print" type="button" onClick={handlePrint}>
-            Print
-          </button>
+          <div className="calendar-cta">
+            <button className="ghost-button calendar-cta-button" type="button" onClick={handlePrint}>
+              Print
+            </button>
+            <button className="ghost-button calendar-cta-button" type="button" onClick={handleDownload}>
+              Download
+            </button>
+          </div>
         </div>
       </header>
 

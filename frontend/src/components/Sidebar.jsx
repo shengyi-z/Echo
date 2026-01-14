@@ -13,16 +13,18 @@ function Sidebar({
   onPinChat,
   onOpenCalendar,
   onOpenDashboard,
+  onOpenSettings,
   searchValue,
   onSearchChange,
   isOpen,
   isSmallScreen,
   onToggleMenu,
 }) {
+  // 拖拽状态
   const [draggingId, setDraggingId] = useState(null)
   const [dragOverId, setDragOverId] = useState(null)
 
-  // Build a stable order for display (pins still float to the top).
+  // 构建稳定的显示顺序（置顶仍在前）。
   const itemById = new Map(items.map((item) => [item.thread_id, item]))
   const orderedIds = (order && order.length > 0 ? order : items.map((item) => item.thread_id))
     .filter((id) => itemById.has(id))
@@ -34,7 +36,7 @@ function Sidebar({
   const unpinnedItems = orderedItems.filter((item) => !item.isPinned)
   const sortedItems = [...pinnedItems, ...unpinnedItems]
 
-  // Move an item in the order array.
+  // 移动排序数组中的条目。
   const moveItem = (list, sourceId, targetId, placeAfter = false) => {
     if (!sourceId || !targetId || sourceId === targetId) return list
     const next = list.filter((id) => id !== sourceId)
@@ -45,17 +47,20 @@ function Sidebar({
     return next
   }
 
+  // 拖拽开始
   const handleDragStart = (id) => (event) => {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', id)
     setDraggingId(id)
   }
 
+  // 拖拽经过
   const handleDragOver = (id) => (event) => {
     event.preventDefault()
     setDragOverId(id)
   }
 
+  // 拖拽释放到目标
   const handleDrop = (targetId) => (event) => {
     event.preventDefault()
     event.stopPropagation()
@@ -73,6 +78,7 @@ function Sidebar({
     onReorder(nextOrder)
   }
 
+  // 拖拽释放到列表底部
   const handleDropOnList = (event) => {
     event.preventDefault()
     const sourceId = draggingId || event.dataTransfer.getData('text/plain')
@@ -90,6 +96,7 @@ function Sidebar({
     onReorder(nextOrder)
   }
 
+  // 拖拽结束
   const handleDragEnd = () => {
     setDragOverId(null)
     setDraggingId(null)
@@ -97,6 +104,7 @@ function Sidebar({
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''} ${isSmallScreen ? 'mobile' : ''}`}>
+      {/* 侧边栏头部 */}
       <div className="sidebar-header">
         {isSmallScreen ? (
           <button className="logo-button" type="button" onClick={onToggleMenu}>
@@ -117,6 +125,7 @@ function Sidebar({
           />
         </div>
       </div>
+      {/* 对话列表 */}
       <div className="history-list" onDragOver={(event) => event.preventDefault()} onDrop={handleDropOnList}>
         {sortedItems.map((item) => (
           <ChatHistoryItem
@@ -138,6 +147,7 @@ function Sidebar({
           />
         ))}
       </div>
+      {/* 侧边栏底部 */}
       <div className="sidebar-footer">
         <button className="nav-tab" type="button" onClick={onOpenCalendar}>
           Calendar
@@ -145,7 +155,12 @@ function Sidebar({
         <button className="nav-tab" type="button" onClick={onOpenDashboard}>
           Dashboard
         </button>
-        <div className="profile-chip">Karen</div>
+        <div className="sidebar-profile">
+          <div className="profile-chip">Karen</div>
+          <button className="settings-button" type="button" onClick={onOpenSettings}>
+            Settings
+          </button>
+        </div>
       </div>
     </aside>
   )

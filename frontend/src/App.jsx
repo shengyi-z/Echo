@@ -3,6 +3,7 @@ import ChatInput from './components/ChatInput'
 import ChatMessage from './components/ChatMessage'
 import Calendar from './components/Calendar'
 import Dashboard from './components/Dashboard'
+import Settings from './components/Settings'
 import Sidebar from './components/Sidebar'
 import './App.css'
 
@@ -437,6 +438,7 @@ function App() {
         onPinChat={handlePinChat}
         onOpenDashboard={() => setActiveView('dashboard')}
         onOpenCalendar={() => setActiveView('calendar')}
+        onOpenSettings={() => setActiveView('settings')}
         searchValue={chatSearch}
         onSearchChange={setChatSearch}
         isOpen={!isSmallScreen || isSidebarOpen}
@@ -453,6 +455,12 @@ function App() {
           />
         ) : activeView === 'calendar' ? (
           <Calendar
+            onBack={() => setActiveView('chat')}
+            showMenuButton={isSmallScreen}
+            onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
+          />
+        ) : activeView === 'settings' ? (
+          <Settings
             onBack={() => setActiveView('chat')}
             showMenuButton={isSmallScreen}
             onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}

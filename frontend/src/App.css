@@ -241,6 +241,14 @@
   gap: 10px;
 }
 
+/* 侧边栏用户与设置 */
+.sidebar-profile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .nav-tab {
   padding: 10px 12px;
   border-radius: 10px;
@@ -263,6 +271,20 @@
   border-radius: 999px;
   font-size: 0.85rem;
   width: fit-content;
+}
+
+.settings-button {
+  border: 1px solid var(--sidebar-border);
+  background: transparent;
+  color: var(--sidebar-text);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-button:hover {
+  border-color: var(--sidebar-accent);
 }
 
 /* Chat panel */
@@ -486,6 +508,47 @@
   justify-content: flex-start;
 }
 
+/* 设置页 */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.settings-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.settings-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
 /* 日历视图容器 */
 .calendar {
   display: flex;
@@ -518,7 +581,7 @@
   flex-wrap: wrap;
 }
 
-/* 标题与打印按钮同行 */
+/* 标题与操作按钮同行 */
 .calendar-title-row {
   display: flex;
   align-items: center;
@@ -526,9 +589,17 @@
   gap: 16px;
 }
 
-.calendar-print {
+/* 打印与下载按钮容器 */
+.calendar-cta {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-cta-button {
   padding: 8px 14px;
   font-size: 0.9rem;
+  min-width: 96px;
+  justify-content: center;
 }
 
 /* 视图切换按钮组 */
@@ -960,6 +1031,10 @@
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1125,7 +1200,7 @@
   .calendar-controls,
   .calendar-toggle,
   .calendar-actions .menu-button,
-  .calendar-print {
+  .calendar-cta {
     display: none !important;
   }
 
