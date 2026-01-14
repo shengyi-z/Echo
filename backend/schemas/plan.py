@@ -29,8 +29,10 @@ class PlanGoalInput(BaseModel):
 class PlanRequest(BaseModel):
     user_context: str = "I am ready for the day."
     timezone: str = "UTC"
-    thread_id: str = Field(..., description="Backboard thread ID for AI conversation context")
-    memory_id: Optional[str] = Field(None, description="Optional memory ID for linking to external context")
+    thread_id: str = Field(...,
+                           description="Backboard thread ID for AI conversation context")
+    memory_id: Optional[str] = Field(
+        None, description="Optional memory ID for linking to external context")
     goal: Optional[PlanGoalInput] = None
     constraints: List[ConstraintInput] = Field(default_factory=list)
     current_state: Dict[str, object] = Field(default_factory=dict)
@@ -64,6 +66,24 @@ class PlanArtifact(BaseModel):
     content: str
 
 
+# Insights with structured formatting
+class PlanInsights(BaseModel):
+    overview: Optional[str] = None
+    key_points: List[str] = Field(default_factory=list)
+    precautions: List[str] = Field(default_factory=list)
+    progression_guidelines: Optional[str] = None
+    scientific_basis: Optional[str] = None
+    adjustments: Optional[str] = None
+    raw_text: Optional[str] = None  # Fallback for unstructured insights
+
+
+# Resource links and references
+class PlanResource(BaseModel):
+    title: Optional[str] = None
+    url: str
+    category: Optional[str] = None
+
+
 # Structured plan response from the planning engine.
 class PlanResponse(BaseModel):
     date: date
@@ -71,5 +91,7 @@ class PlanResponse(BaseModel):
     milestones: List[PlanMilestone] = Field(default_factory=list)
     tasks: List[PlanTask] = Field(default_factory=list)
     artifacts: List[PlanArtifact] = Field(default_factory=list)
+    insights: Optional[PlanInsights] = None
+    resources: List[PlanResource] = Field(default_factory=list)
     message: str
     warnings: List[str] = Field(default_factory=list)
