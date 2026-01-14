@@ -6,9 +6,9 @@ import re
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from ..repo.goal_repo import GoalRepository
-from ..schemas.plan import PlanRequest, PlanResponse, PlanMilestone, PlanTask, PlanArtifact
-from .chat_service import ChatService
+from repo.goal_repo import GoalRepository
+from schemas.plan import PlanRequest, PlanResponse, PlanMilestone, PlanTask, PlanArtifact
+from services.chat_service import ChatService
 
 
 # Planning workflow orchestration for plan generation + persistence.

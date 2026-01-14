@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from ..models.goal import Goal
-from ..models.milestone import Milestone
-from ..models.task import Task
+from models.goal import Goal
+from models.milestone import Milestone
+from models.task import Task
 
 
 class GoalRepository:
