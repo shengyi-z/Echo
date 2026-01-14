@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from models.goal import Goal
-from models.milestone import Milestone
-from models.task import Task
+from ..models.goal import Goal
+from ..models.milestone import Milestone
+from ..models.task import Task
 
 
 class GoalRepository:
@@ -189,7 +189,8 @@ class GoalRepository:
         if tasks:
             milestone_payload["tasks"] = tasks
 
-        milestone = self._create_milestone_from_payload(goal, milestone_payload, default_order=order)
+        milestone = self._create_milestone_from_payload(
+            goal, milestone_payload, default_order=order)
         self.session.flush()
         return milestone
 
@@ -201,7 +202,8 @@ class GoalRepository:
         if not goal:
             raise ValueError(f"Goal {goal_id} does not exist.")
 
-        index_map = {milestone_id: idx for idx, milestone_id in enumerate(ordered_ids, start=1)}
+        index_map = {milestone_id: idx for idx,
+                     milestone_id in enumerate(ordered_ids, start=1)}
         for milestone in goal.milestones:
             if milestone.id in index_map:
                 milestone.order = index_map[milestone.id]

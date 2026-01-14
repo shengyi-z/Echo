@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
-from core.db import SessionLocal
-from schemas.plan import PlanRequest, PlanResponse
-from services.planning_service import PlanningService
+from ..core.db import SessionLocal
+from ..schemas.plan import PlanRequest, PlanResponse
+from ..services.planning_service import PlanningService
 
 # Router configuration for planning endpoints.
 router = APIRouter(prefix="/api/plans", tags=["plans"])
