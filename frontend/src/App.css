@@ -19,6 +19,7 @@
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-x: hidden;
 }
 
 .sidebar-header {
@@ -50,19 +51,24 @@
   cursor: pointer;
 }
 
+/* Chat history list */
 .history-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 6px;
 }
 
+/* Chat history items */
 .history-item-wrapper {
   position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .history-item-wrapper:hover .history-menu-button {
@@ -70,7 +76,7 @@
 }
 
 .history-item {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -81,6 +87,8 @@
   cursor: pointer;
   border-radius: 8px;
   transition: background 0.2s;
+  min-width: 0;
+  height: 56px;
 }
 
 .history-item:hover {
@@ -105,6 +113,7 @@
   min-width: 0;
 }
 
+/* Truncate chat titles/previews */
 .history-title {
   font-weight: 500;
   font-size: 14px;
@@ -112,6 +121,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
 .history-preview {
@@ -121,8 +131,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
+  width: 100%;
 }
 
+/* Chat history menu button */
 .history-menu-button {
   opacity: 0;
   padding: 8px;
@@ -141,17 +153,15 @@
   color: #333;
 }
 
+/* History menu panel */
 .history-menu {
-  position: absolute;
-  top: 100%;
-  right: 8px;
+  position: fixed;
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 2000;
   min-width: 150px;
-  margin-top: 4px;
   overflow: hidden;
 }
 
