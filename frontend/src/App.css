@@ -518,6 +518,19 @@
   flex-wrap: wrap;
 }
 
+/* 标题与打印按钮同行 */
+.calendar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calendar-print {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+}
+
 /* 视图切换按钮组 */
 .calendar-toggle {
   display: inline-flex;
@@ -1098,3 +1111,49 @@
     padding: 0;
   }
 }
+
+/* 日历打印样式：确保月视图在单页内 */
+@media print {
+  .calendar {
+    height: auto;
+  }
+
+  .calendar-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-controls,
+  .calendar-toggle,
+  .calendar-actions .menu-button,
+  .calendar-print {
+    display: none !important;
+  }
+
+  .calendar-header {
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dcdcdc;
+  }
+
+  .month-grid {
+    gap: 4px;
+  }
+
+  .day-card {
+    min-height: 54px;
+    padding: 6px;
+    box-shadow: none;
+  }
+
+  .day-event {
+    font-size: 0.7rem;
+  }
+}
+  /* 里程碑时间线打印到下一页 */
+  .calendar-timeline {
+    display: block;
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #dcdcdc;
+    padding-top: 12px;
+    page-break-before: always;
+  }

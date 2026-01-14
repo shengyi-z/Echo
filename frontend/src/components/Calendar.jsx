@@ -18,6 +18,11 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
   const [selectedYear, setSelectedYear] = useState(2026)
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
 
+  // 打印当前日历视图。
+  const handlePrint = () => {
+    window.print()
+  }
+
   // 过滤出当前年月的事件。
   const filteredEvents = useMemo(() => {
     return EVENTS.filter((event) => {
@@ -108,9 +113,15 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
             </label>
           </div>
         </div>
-        <div className="calendar-title">
-          <h1>Calendar</h1>
-          <p>Plan milestones and see upcoming focus windows.</p>
+        {/* 标题与打印按钮同行 */}
+        <div className="calendar-title-row">
+          <div className="calendar-title">
+            <h1>Calendar</h1>
+            <p>Plan milestones and see upcoming focus windows.</p>
+          </div>
+          <button className="ghost-button calendar-print" type="button" onClick={handlePrint}>
+            Print
+          </button>
         </div>
       </header>
 
