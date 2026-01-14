@@ -1,17 +1,17 @@
-// Warning block for risks and dependencies.
+// Risk and dependency warnings.
 function RiskAlerts() {
   return (
     <article className="dash-card warning">
       <header className="dash-card-header">
-        <h2>风险提示</h2>
+        <h2>Risk alerts</h2>
         <span className="pill alert">2</span>
       </header>
       <div className="alert-list">
         <div className="alert-item">
-          体检表未完成，报名材料可能延迟。
+          Medical form is incomplete; application materials may be delayed.
         </div>
         <div className="alert-item">
-          若本周未模拟考试，将影响下周预约。
+          If you skip the practice test this week, next week may slip.
         </div>
       </div>
     </article>

@@ -466,6 +466,252 @@
   justify-content: flex-start;
 }
 
+/* 日历视图容器 */
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+/* 日历头部 */
+.calendar-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 视图切换按钮组 */
+.calendar-toggle {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface-active);
+  border: 1px solid var(--border);
+}
+
+.calendar-toggle-button {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.calendar-toggle-button.active {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+/* 日历主内容区 */
+.calendar-content {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+/* 月视图 */
+.calendar-month {
+  display: grid;
+  gap: 16px;
+}
+
+.month-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.month-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* 星期标题 */
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.weekday {
+  text-align: center;
+}
+
+/* 日期网格 */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.day-card {
+  min-height: 92px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  display: grid;
+  gap: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.day-card.empty {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.day-card.has-event {
+  border-color: var(--accent-muted);
+  background: var(--surface);
+}
+
+.day-number {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.day-event {
+  font-size: 0.78rem;
+  color: var(--accent-deep);
+  line-height: 1.3;
+}
+
+/* 年视图 */
+.calendar-year {
+  display: grid;
+  gap: 16px;
+}
+
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.year-card {
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.year-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.year-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.year-card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.year-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.year-card-cell {
+  height: 16px;
+  border-radius: 6px;
+  background: var(--surface-active);
+}
+
+/* 时间线侧栏 */
+.calendar-timeline {
+  border-left: 1px solid var(--divider);
+  padding-left: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.timeline-list {
+  display: grid;
+  gap: 12px;
+}
+
+.timeline-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.timeline-date-pill {
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-muted);
+  color: var(--accent-deep);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.timeline-info {
+  display: grid;
+  gap: 4px;
+  color: var(--text-primary);
+}
+
+.timeline-info span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* 日历底部操作 */
+.calendar-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .dash-card {
   background: var(--surface-raised);
   border-radius: 16px;
@@ -627,6 +873,18 @@
     display: none;
   }
 
+  /* 日历在中屏改为单列 */
+  .calendar-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-timeline {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--divider);
+    padding-top: 16px;
+  }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -650,6 +908,7 @@
 
   .chat-panel {
     transition: transform 0.3s ease;
+    padding: 16px;
   }
 
   .app-shell.mobile-open .chat-panel {
@@ -657,14 +916,36 @@
   }
 
   .chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  /* Section divider */
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--divider);
-  flex-shrink: 0; /* 髦ｲ豁｢ header 陲ｫ蜴狗ｼ?*/
+    justify-content: flex-start;
+  }
+
+  .dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .history-title {
+    font-size: 0.9rem;
+  }
+
+  .new-chat {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+
+  /* 日历在小屏收紧间距 */
+  .calendar-content {
+    gap: 16px;
+  }
+
+  .month-grid {
+    gap: 6px;
+  }
+
+  .day-card {
+    min-height: 70px;
+    padding: 8px;
+  }
 }
 
 .chat-title-edit {
@@ -696,6 +977,4 @@
 .history-title-edit:focus {
   outline: none;
   border-color: var(--accent-deep);
-}
-
 }

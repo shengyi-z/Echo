@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 
-// Single item in the chat history list.
+// 单条对话历史项。
 function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename, onDelete, onPin }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(title)
@@ -9,7 +9,7 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
   const menuRef = useRef(null)
   const menuContainerRef = useRef(null)
 
-  // 点击外部关闭菜单
+  // 点击外部关闭菜单。
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuContainerRef.current && !menuContainerRef.current.contains(event.target)) {
@@ -23,7 +23,7 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
     }
   }, [showMenu])
 
-  // Position the menu so it doesn't get clipped by the scroll container.
+  // 计算弹出位置，避免被滚动容器裁切。
   useEffect(() => {
     if (!showMenu) {
       setMenuStyle(null)
@@ -108,13 +108,13 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
 
   return (
     <div className={`history-item-wrapper ${isActive ? 'active' : ''}`}>
-      <button 
+      <button
         className={`history-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}`}
         onClick={!isEditing ? onClick : undefined}
         onDoubleClick={handleDoubleClick}
         title="Double-click to rename"
       >
-        {isPinned && <span className="pin-icon">📌</span>}
+        {isPinned && <span className="pin-icon">PIN</span>}
         {isEditing ? (
           <div className="history-content">
             <input
@@ -137,13 +137,13 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
       </button>
 
       <div ref={menuContainerRef}>
-      <button 
-        className="history-menu-button"
-        onClick={handleMenuClick}
-        title="More options"
-      >
-        ⋮
-      </button>
+        <button
+          className="history-menu-button"
+          onClick={handleMenuClick}
+          title="More options"
+        >
+          ...
+        </button>
 
         {showMenu && (
           <div
@@ -151,14 +151,14 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
             ref={menuRef}
             style={menuStyle ? { ...menuStyle, visibility: 'visible' } : { visibility: 'hidden' }}
           >
-          <button className="history-menu-item" onClick={handlePin}>
-            {isPinned ? '📌 Unpin Chat' : '📌 Pin Chat'}
-          </button>
-          <button className="history-menu-item delete" onClick={handleDelete}>
-            🗑️ Delete Chat
-          </button>
-        </div>
-      )}
+            <button className="history-menu-item" onClick={handlePin}>
+              {isPinned ? 'Unpin chat' : 'Pin chat'}
+            </button>
+            <button className="history-menu-item delete" onClick={handleDelete}>
+              Delete chat
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
