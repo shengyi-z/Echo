@@ -8,7 +8,7 @@ import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..init_echo import ensure_assistant, create_thread, send_message
+from init_echo import ensure_assistant, create_thread, send_message
 
 # Router config and Backboard base URL.
 router = APIRouter(prefix="/api/chat", tags=["chat"])

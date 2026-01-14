@@ -5,10 +5,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
 
-from ..core.db import get_db
-from ..models.milestone import Milestone
-from ..repo.goal_repo import GoalRepository
-from ..schemas.goal import (
+from core.db import get_db
+from models.milestone import Milestone
+from repo.goal_repo import GoalRepository
+from schemas.goal import (
     GoalCreate,
     GoalOut,
     GoalUpdate,

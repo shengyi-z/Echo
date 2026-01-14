@@ -5,11 +5,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..core.db import get_db
-from ..models.dependency import Dependency
-from ..models.task import Task
-from ..repo.task_repo import TaskRepository
-from ..schemas.task import (
+from core.db import get_db
+from models.dependency import Dependency
+from models.task import Task
+from repo.task_repo import TaskRepository
+from schemas.task import (
     DependencyCreate,
     DependencyOut,
     TaskCreate,

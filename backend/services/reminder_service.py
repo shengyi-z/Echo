@@ -1,4 +1,4 @@
-"""
+uvicorn main:app --reload"""
 ReminderService - 智能提醒管理服务
 """
 from datetime import datetime, timedelta, date
