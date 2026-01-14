@@ -3,7 +3,7 @@ import RiskAlerts from './RiskAlerts'
 import TodayTasks from './TodayTasks'
 import WeeklyTimeline from './WeeklyTimeline'
 
-// Dashboard view that summarizes current progress.
+// 仪表盘视图：汇总当前进度。
 function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
   return (
     <div className="dashboard">

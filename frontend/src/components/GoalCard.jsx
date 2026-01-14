@@ -3,21 +3,21 @@ function GoalCard() {
   return (
     <article className="dash-card">
       <header className="dash-card-header">
-        <h2>进行中的目标</h2>
+        <h2>Active goal</h2>
         <span className="pill">65%</span>
       </header>
-      <p className="dash-card-subtitle">目标：8 月前完成驾照考试</p>
+      <p className="dash-card-subtitle">Goal: Finish the driving test by August</p>
       <div className="progress">
         <div className="progress-bar" style={{ width: '65%' }} />
       </div>
       <div className="dash-card-meta">
         <div>
-          <span className="meta-label">下一里程碑</span>
-          <span className="meta-value">完成科目一模拟</span>
+          <span className="meta-label">Next milestone</span>
+          <span className="meta-value">Complete Module 1 practice</span>
         </div>
         <div>
-          <span className="meta-label">最近 DDL</span>
-          <span className="meta-value">6 月 12 日</span>
+          <span className="meta-label">Nearest deadline</span>
+          <span className="meta-value">Jun 12</span>
         </div>
       </div>
     </article>

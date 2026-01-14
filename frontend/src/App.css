@@ -1,10 +1,12 @@
-.app-shell {
+﻿.app-shell {
   display: flex;
   min-height: 100vh;
   min-height: 100svh;
   color: var(--text-primary);
   position: relative;
   overflow-x: hidden;
+  /* Subtle split background for depth */
+  background: linear-gradient(90deg, rgba(17, 23, 32, 0.04), rgba(17, 23, 32, 0) 18%);
 }
 
 /* Sidebar */
@@ -14,17 +16,39 @@
   flex-direction: column;
   gap: 16px;
   padding: 20px;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Sidebar dark theme */
+.sidebar,
+.sidebar .logo-mark,
+.sidebar .history-title {
+  color: var(--sidebar-text);
+}
+
+.sidebar .history-preview,
+.sidebar .menu-button,
+.sidebar .history-menu-button {
+  color: var(--sidebar-muted);
 }
 
 .sidebar-header {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Sidebar header divider */
+.sidebar-header::after {
+  content: '';
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
 }
 .logo-button {
   border: none;
@@ -44,25 +68,50 @@
   padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid transparent;
-  background: var(--accent);
-  color: #fff;
+  background: var(--sidebar-accent);
+  color: var(--ink-inverse);
   font-weight: 600;
   cursor: pointer;
 }
 
+/* 侧边栏搜索 */
+.chat-search {
+  display: grid;
+  gap: 6px;
+}
+
+.chat-search input {
+  width: 100%;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--sidebar-chip);
+  color: var(--sidebar-text);
+  font: inherit;
+}
+
+.chat-search input::placeholder {
+  color: var(--sidebar-muted);
+}
+
+/* Chat history list */
 .history-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 6px;
 }
 
+/* Chat history items */
 .history-item-wrapper {
   position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .history-item-wrapper:hover .history-menu-button {
@@ -70,29 +119,32 @@
 }
 
 .history-item {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   text-align: left;
   cursor: pointer;
   border-radius: 8px;
   transition: background 0.2s;
+  min-width: 0;
+  height: 56px;
 }
 
 .history-item:hover {
-  background: #f5f5f5;
+  background: var(--sidebar-hover);
 }
 
 .history-item.active {
-  background: #e3f2fd;
+  background: var(--sidebar-active);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .history-item.pinned {
-  background: #fff9e6;
+  background: #1b2533;
 }
 
 .pin-icon {
@@ -105,24 +157,28 @@
   min-width: 0;
 }
 
+/* Truncate chat titles/previews */
 .history-title {
   font-weight: 500;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
 .history-preview {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
+  width: 100%;
 }
 
+/* Chat history menu button */
 .history-menu-button {
   opacity: 0;
   padding: 8px;
@@ -130,28 +186,26 @@
   border: none;
   cursor: pointer;
   font-size: 18px;
-  color: #666;
+  color: var(--text-muted);
   border-radius: 4px;
   transition: opacity 0.2s, background 0.2s;
   flex-shrink: 0;
 }
 
 .history-menu-button:hover {
-  background: #e0e0e0;
-  color: #333;
+  background: var(--sidebar-active);
+  color: var(--sidebar-text);
 }
 
+/* History menu panel */
 .history-menu {
-  position: absolute;
-  top: 100%;
-  right: 8px;
-  background: white;
-  border: 1px solid #ddd;
+  position: fixed;
+  background: #121924;
+  border: 1px solid var(--sidebar-border);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 2000;
   min-width: 150px;
-  margin-top: 4px;
   overflow: hidden;
 }
 
@@ -160,24 +214,24 @@
   width: 100%;
   padding: 10px 16px;
   border: none;
-  background: white;
+  background: transparent;
   text-align: left;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--sidebar-text);
   transition: background 0.2s;
 }
 
 .history-menu-item:hover {
-  background: #f5f5f5;
+  background: var(--sidebar-hover);
 }
 
 .history-menu-item.delete {
-  color: #d32f2f;
+  color: #e07a7a;
 }
 
 .history-menu-item.delete:hover {
-  background: #ffebee;
+  background: rgba(224, 122, 122, 0.18);
 }
 
 .sidebar-footer {
@@ -187,27 +241,50 @@
   gap: 10px;
 }
 
+/* 侧边栏用户与设置 */
+.sidebar-profile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .nav-tab {
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #fff;
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar-chip);
   text-align: left;
   font-weight: 600;
   cursor: pointer;
+  color: var(--sidebar-text);
 }
 
 .nav-tab:hover {
-  border-color: var(--accent);
+  border-color: var(--sidebar-accent);
 }
 
 .profile-chip {
-  background: #111827;
-  color: #fff;
+  background: var(--sidebar-chip);
+  color: var(--sidebar-text);
   padding: 8px 12px;
   border-radius: 999px;
   font-size: 0.85rem;
   width: fit-content;
+}
+
+.settings-button {
+  border: 1px solid var(--sidebar-border);
+  background: transparent;
+  color: var(--sidebar-text);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-button:hover {
+  border-color: var(--sidebar-accent);
 }
 
 /* Chat panel */
@@ -221,7 +298,9 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden; /* 防止整个面板滚动 */
+  overflow: hidden; /* 闃叉鏁翠釜闈㈡澘婊氬姩 */
+  /* Light panel gradient for a refined surface */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 239, 230, 0.92));
 }
 
 .chat-header {
@@ -229,7 +308,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-shrink: 0; /* 防止 header 被压缩 */
+  /* Section divider */
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+  flex-shrink: 0; /* 髦ｲ豁｢ header 陲ｫ蜴狗ｼ?*/
 }
 
 .chat-header h1 {
@@ -239,7 +321,7 @@
 }
 .menu-button {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--surface-raised);
   color: var(--text-primary);
   width: 36px;
   height: 36px;
@@ -302,8 +384,8 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  /* 确保滚动区域有最大高度 */
-  max-height: calc(100vh - 120px); /* 减去 header 和 input 的高度 */
+  /* 纭繚婊氬姩鍖哄煙鏈夋渶澶ч珮搴?*/
+  max-height: calc(100vh - 120px); /* 鍑忓幓 header 鍜?input 鐨勯珮搴?*/
 }
 
 .chat-message {
@@ -322,14 +404,14 @@
   max-width: min(560px, 90%);
   padding: 12px 16px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface-raised);
   box-shadow: var(--shadow-soft);
   position: relative;
 }
 
 .chat-message.user .message-bubble {
-  background: #111827;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--ink-inverse);
 }
 
 .message-bubble p {
@@ -351,12 +433,12 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  background: #fff;
+  background: var(--surface-raised);
   border-radius: 16px;
   padding: 10px 12px;
   box-shadow: var(--shadow-soft);
   border: 1px solid var(--border);
-  flex-shrink: 0; /* 防止 input 被压缩 */
+  flex-shrink: 0; /* 闃叉 input 琚帇缂?*/
 }
 
 .chat-input textarea {
@@ -406,8 +488,8 @@
 
 .back-button {
   border: none;
-  background: #111827;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--ink-inverse);
   padding: 8px 12px;
   border-radius: 10px;
   cursor: pointer;
@@ -426,8 +508,351 @@
   justify-content: flex-start;
 }
 
+/* 设置页 */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.settings-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.settings-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* 日历视图容器 */
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+/* 日历头部 */
+.calendar-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.calendar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 标题与操作按钮同行 */
+.calendar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* 打印与下载按钮容器 */
+.calendar-cta {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-cta-button {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  min-width: 96px;
+  justify-content: center;
+}
+
+/* 视图切换按钮组 */
+.calendar-toggle {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface-active);
+  border: 1px solid var(--border);
+}
+
+.calendar-toggle-button {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.calendar-toggle-button.active {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+/* 年月跳转控件 */
+.calendar-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.calendar-field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.calendar-field input,
+.calendar-field select {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+  min-width: 120px;
+}
+
+/* 日历主内容区 */
+.calendar-content {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+/* 月视图 */
+.calendar-month {
+  display: grid;
+  gap: 16px;
+}
+
+.month-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.month-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* 星期标题 */
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.weekday {
+  text-align: center;
+}
+
+/* 日期网格 */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.day-card {
+  min-height: 92px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  display: grid;
+  gap: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.day-card.empty {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.day-card.has-event {
+  border-color: var(--accent-muted);
+  background: var(--surface);
+}
+
+.day-number {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.day-event {
+  font-size: 0.78rem;
+  color: var(--accent-deep);
+  line-height: 1.3;
+}
+
+/* 年视图 */
+.calendar-year {
+  display: grid;
+  gap: 16px;
+}
+
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.year-card {
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.year-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.year-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.year-card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.year-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.year-card-cell {
+  height: 16px;
+  border-radius: 6px;
+  background: var(--surface-active);
+}
+
+/* 时间线侧栏 */
+.calendar-timeline {
+  border-left: 1px solid var(--divider);
+  padding-left: 18px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.timeline-list {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.timeline-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.timeline-date-pill {
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-muted);
+  color: var(--accent-deep);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.timeline-info {
+  display: grid;
+  gap: 4px;
+  color: var(--text-primary);
+}
+
+.timeline-info span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* 日历底部操作 */
+.calendar-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .dash-card {
-  background: #fff;
+  background: var(--surface-raised);
   border-radius: 16px;
   padding: 18px;
   border: 1px solid var(--border);
@@ -438,8 +863,8 @@
 }
 
 .dash-card.warning {
-  border-color: #fecaca;
-  background: #fff7ed;
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
 }
 
 .dash-card-header {
@@ -459,8 +884,8 @@
 }
 
 .pill {
-  background: #111827;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--ink-inverse);
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 0.75rem;
@@ -468,17 +893,17 @@
 }
 
 .pill.ghost {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--surface-active);
+  color: var(--text-primary);
 }
 
 .pill.alert {
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .progress {
   height: 8px;
-  background: #e2e8f0;
+  background: var(--surface-active);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -540,8 +965,8 @@
 }
 
 .timeline-date {
-  background: #111827;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--ink-inverse);
   text-align: center;
   padding: 6px 0;
   border-radius: 10px;
@@ -566,10 +991,10 @@
 }
 
 .alert-item {
-  background: #fff;
+  background: var(--surface-raised);
   border-radius: 12px;
   padding: 10px 12px;
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--danger-border);
 }
 
 /* Responsive adjustments */
@@ -587,7 +1012,27 @@
     display: none;
   }
 
+  /* 日历在中屏改为单列 */
+  .calendar-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-timeline {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--divider);
+    padding-top: 16px;
+  }
+
+  .calendar-top {
+    align-items: flex-start;
+  }
+
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -610,6 +1055,7 @@
 
   .chat-panel {
     transition: transform 0.3s ease;
+    padding: 16px;
   }
 
   .app-shell.mobile-open .chat-panel {
@@ -622,10 +1068,7 @@
 
   .dashboard-header {
     align-items: flex-start;
-  }
-
-  .chat-panel {
-    padding: 16px;
+    flex-direction: column;
   }
 
   .history-title {
@@ -637,9 +1080,23 @@
     font-size: 0.85rem;
   }
 
-  .dashboard-header {
+  /* 日历在小屏收紧间距 */
+  .calendar-content {
+    gap: 16px;
+  }
+
+  .calendar-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .month-grid {
+    gap: 6px;
+  }
+
+  .day-card {
+    min-height: 70px;
+    padding: 8px;
   }
 }
 
@@ -647,29 +1104,131 @@
   width: 100%;
   max-width: 400px;
   padding: 4px 8px;
-  border: 2px solid #007bff;
+  border: 2px solid var(--accent);
   border-radius: 4px;
   font-size: 24px;
   font-weight: 600;
-  background: white;
+  background: var(--surface-raised);
 }
 
 .chat-title-edit:focus {
   outline: none;
-  border-color: #0056b3;
+  border-color: var(--accent-deep);
 }
 
 .history-title-edit {
   width: 100%;
   padding: 4px;
-  border: 1px solid #007bff;
+  border: 1px solid var(--accent);
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
-  background: white;
+  background: var(--surface-raised);
 }
 
 .history-title-edit:focus {
   outline: none;
-  border-color: #0056b3;
+  border-color: var(--accent-deep);
 }
+
+/* 打印样式：仅保留对话内容 */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .sidebar,
+  .chat-input,
+  .ghost-button,
+  .menu-button,
+  .history-menu {
+    display: none !important;
+  }
+
+  .app-shell {
+    background: none;
+  }
+
+  /* 打印页面留白与色彩保留 */
+  @page {
+    margin: 16mm;
+  }
+
+  html, body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .chat-panel {
+    padding: 12mm;
+    height: auto;
+    background: none;
+  }
+
+  .chat-header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dcdcdc;
+  }
+
+  .message-bubble {
+    border: 1px solid #e4e4e4;
+    box-shadow: none;
+  }
+
+  .chat-message.user .message-bubble {
+    background: #111827;
+    color: #fff;
+  }
+
+  .chat-scroll {
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+}
+
+/* 日历打印样式：确保月视图在单页内 */
+@media print {
+  .calendar {
+    height: auto;
+  }
+
+  .calendar-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-controls,
+  .calendar-toggle,
+  .calendar-actions .menu-button,
+  .calendar-cta {
+    display: none !important;
+  }
+
+  .calendar-header {
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dcdcdc;
+  }
+
+  .month-grid {
+    gap: 4px;
+  }
+
+  .day-card {
+    min-height: 54px;
+    padding: 6px;
+    box-shadow: none;
+  }
+
+  .day-event {
+    font-size: 0.7rem;
+  }
+}
+  /* 里程碑时间线打印到下一页 */
+  .calendar-timeline {
+    display: block;
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #dcdcdc;
+    padding-top: 12px;
+    page-break-before: always;
+  }

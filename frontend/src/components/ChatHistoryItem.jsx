@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from 'react'
 
-// Single item in the chat history list.
+// 单条对话历史项。
 function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename, onDelete, onPin }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(title)
   const [showMenu, setShowMenu] = useState(false)
+  const [menuStyle, setMenuStyle] = useState(null)
   const menuRef = useRef(null)
+  const menuContainerRef = useRef(null)
 
-  // 点击外部关闭菜单
+  // 点击外部关闭菜单。
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(event.target)) {
         setShowMenu(false)
       }
     }
@@ -19,6 +21,43 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
+  }, [showMenu])
+
+  // 计算弹出位置，避免被滚动容器裁切。
+  useEffect(() => {
+    if (!showMenu) {
+      setMenuStyle(null)
+      return
+    }
+
+    const menu = menuRef.current
+    const anchor = menuContainerRef.current
+    if (!menu || !anchor) return
+
+    const padding = 8
+    const gap = 4
+
+    const updatePosition = () => {
+      const anchorRect = anchor.getBoundingClientRect()
+      const menuRect = menu.getBoundingClientRect()
+      const fitsBelow = anchorRect.bottom + menuRect.height + gap <= window.innerHeight - padding
+      const top = fitsBelow
+        ? anchorRect.bottom + gap
+        : anchorRect.top - menuRect.height - gap
+      const left = Math.min(
+        window.innerWidth - menuRect.width - padding,
+        Math.max(padding, anchorRect.right - menuRect.width)
+      )
+
+      setMenuStyle({
+        top: `${Math.max(padding, top)}px`,
+        left: `${left}px`
+      })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    return () => window.removeEventListener('resize', updatePosition)
   }, [showMenu])
 
   const handleDoubleClick = (e) => {
@@ -52,7 +91,7 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
 
   const handleMenuClick = (e) => {
     e.stopPropagation()
-    setShowMenu(!showMenu)
+    setShowMenu((prev) => !prev)
   }
 
   const handleDelete = (e) => {
@@ -69,13 +108,13 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
 
   return (
     <div className={`history-item-wrapper ${isActive ? 'active' : ''}`}>
-      <button 
+      <button
         className={`history-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}`}
         onClick={!isEditing ? onClick : undefined}
         onDoubleClick={handleDoubleClick}
         title="Double-click to rename"
       >
-        {isPinned && <span className="pin-icon">📌</span>}
+        {isPinned && <span className="pin-icon">PIN</span>}
         {isEditing ? (
           <div className="history-content">
             <input
@@ -96,25 +135,31 @@ function ChatHistoryItem({ title, preview, isActive, isPinned, onClick, onRename
           </div>
         )}
       </button>
-      
-      <button 
-        className="history-menu-button"
-        onClick={handleMenuClick}
-        title="More options"
-      >
-        ⋮
-      </button>
 
-      {showMenu && (
-        <div className="history-menu" ref={menuRef}>
-          <button className="history-menu-item" onClick={handlePin}>
-            {isPinned ? '📌 Unpin Chat' : '📌 Pin Chat'}
-          </button>
-          <button className="history-menu-item delete" onClick={handleDelete}>
-            🗑️ Delete Chat
-          </button>
-        </div>
-      )}
+      <div ref={menuContainerRef}>
+        <button
+          className="history-menu-button"
+          onClick={handleMenuClick}
+          title="More options"
+        >
+          ...
+        </button>
+
+        {showMenu && (
+          <div
+            className="history-menu"
+            ref={menuRef}
+            style={menuStyle ? { ...menuStyle, visibility: 'visible' } : { visibility: 'hidden' }}
+          >
+            <button className="history-menu-item" onClick={handlePin}>
+              {isPinned ? 'Unpin chat' : 'Pin chat'}
+            </button>
+            <button className="history-menu-item delete" onClick={handleDelete}>
+              Delete chat
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
