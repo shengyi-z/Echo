@@ -396,8 +396,7 @@
   padding: 10px 12px;
   box-shadow: var(--shadow-soft);
   border: 1px solid var(--border);
-  flex-shrink: 0; /* é˜²æ­¢ input è¢«åŽ‹ç¼?*/
-  outline: 1px solid rgba(17, 23, 32, 0.04);
+  flex-shrink: 0; /* 闃叉 input 琚帇缂?*/
 }
 
 .chat-input textarea {
@@ -433,8 +432,6 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--divider);
 }
 
 .dashboard-header h1 {
@@ -701,5 +698,4 @@
   border-color: var(--accent-deep);
 }
 
-
-
+}
