@@ -27,6 +27,57 @@ def load_system_prompt():
         return None
 
 # ---------------------------------------------------------
+# 核心功能：上传文档到 Assistant
+# ---------------------------------------------------------
+def upload_document_to_assistant(file_path: str, assistant_id: str):
+    """
+    上传文档到 Assistant
+    """
+    api_key = os.getenv("BACKBOARD_API_KEY")
+    if not api_key:
+        raise ValueError("BACKBOARD_API_KEY not found")
+    
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    headers = {"X-API-Key": api_key}
+    
+    try:
+        filename = os.path.basename(file_path)
+        
+        with open(file_path, 'rb') as f:
+            files = {
+                'file': (filename, f, 'text/plain')
+            }
+            
+            print(f"📤 上传文档: {filename}")
+            print(f"🔍 Assistant ID: {assistant_id}")
+            
+            response = requests.post(
+                f"{BASE_URL}/assistants/{assistant_id}/documents",
+                files=files,
+                headers=headers
+            )
+            
+            print(f"🔍 响应状态: {response.status_code}")
+            print(f"🔍 响应内容: {response.text}")
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            print(f"✅ 文档上传成功! Document ID: {data.get('document_id')}")
+            print(f"   状态: {data.get('status')}")
+            return data.get('document_id')
+            
+    except requests.exceptions.HTTPError as e:
+        error_detail = e.response.text if hasattr(e.response, 'text') else str(e)
+        print(f"❌ 上传失败 ({e.response.status_code}): {error_detail}")
+        return None
+    except Exception as e:
+        print(f"⚠️ 文档上传失败: {e}")
+        return None
+
+# ---------------------------------------------------------
 # 核心功能：确保助手已初始化
 # ---------------------------------------------------------
 async def ensure_assistant():
@@ -63,6 +114,14 @@ async def ensure_assistant():
         
         assistant_id = assistant.assistant_id
         print(f"✅ 助手创建成功! ID: {assistant_id}")
+        
+        # 上传规划文档
+        docs_path = os.path.join(os.path.dirname(__file__), "docs", "Plan Builder.txt")
+        if os.path.exists(docs_path):
+            print("📚 上传助手文档...")
+            upload_document_to_assistant(docs_path, assistant_id)
+        else:
+            print(f"⚠️ 文档未找到: {docs_path}")
         
         # 写入 .env
         update_env_file("BACKBOARD_ASSISTANT_ID", assistant_id)
@@ -132,7 +191,6 @@ def send_message(thread_id: str, user_input: str):
             headers=headers
         )
         print(f"🔍 响应状态码: {response.status_code}")
-        print(f"🔍 响应内容: {response.text[:500]}")
         response.raise_for_status()
         data = response.json()
         
@@ -141,6 +199,9 @@ def send_message(thread_id: str, user_input: str):
         if not content:
             # 如果content为空，尝试获取message字段
             content = data.get("message", "")
+        
+        print(f"\n📨 Backboard API 原始响应:")
+        print(f"   Content: {content}")
         
         return content
     except requests.exceptions.HTTPError as e:

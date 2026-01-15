@@ -129,10 +129,12 @@ async def send_chat_message(request: ChatRequest):
 
     try:
         # 发送消息，自动开启记忆和搜索
-        print(f"📤 发送消息到 thread_id: {request.thread_id}")
-        print(f"📝 消息内容: {request.message}")
+        print(f"\n📤 发送消息到 thread_id: {request.thread_id}")
+        print(f"📝 用户消息: {request.message}")
+        print("="*80)
         content = send_message(request.thread_id, request.message)
-        print(f"✅ 收到回复: {content[:100] if content else 'None'}...")
+        print(f"\n🤖 AI 完整响应:\n{content}")
+        print("="*80)
 
         suggested_title = None
 
