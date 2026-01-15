@@ -850,12 +850,13 @@ Your final deliverable is a **valid JSON object** wrapped in markdown code fence
 ````
 
 **Final Reminders:**
-- ✅ Validate against all rules in Section 6
-- ✅ Complete the quality checklist (Section 7)
-- ✅ Run the verification loop (Section 9)
-- ✅ Ensure JSON is valid and properly formatted
-- ✅ Tone is encouraging and user-centric
-- ✅ Plan is realistic, executable, and evidence-based
+- Validate against all rules in Section 6
+- Complete the quality checklist (Section 7)
+- Run the verification loop (Section 9)
+- Ensure JSON is valid and properly formatted
+- Tone is encouraging and user-centric
+- Plan is realistic, executable, and evidence-based
+- Return ONLY valid JSON wrapped in ```json code fence. No other content. The JSON must include every field defined in the schema and no additional top-level keys.
 
 **If uncertain about domain-specific details, USE WEB SEARCH before generating the plan.**
 

@@ -193,7 +193,7 @@ function App() {
       
       console.log('📝 Chat sessions updated')
     } catch (error) {
-      console.error('❌ Failed to create new chat:', error)
+      console.error('❌ Failed to create new chat:', error.message)
     }
   }
 
@@ -330,7 +330,7 @@ function App() {
       // 尝试从 content 中提取 plan 数据
       let planData = null
       let displayContent = data.content
-      
+      console.log('🤖 AI 原始响应内容:', data.content)
       try {
         // 检查 content 是否包含 JSON 格式的 plan
         const jsonMatch = data.content.match(/```json\s*([\s\S]*?)\s*```/)
@@ -340,7 +340,7 @@ function App() {
           console.log('📊 提取到 JSON 数据:', parsed)
           // 检查是否是 plan 格式 (包含 milestones, insights, resources)
           if (parsed.goal) {
-            planData = parsed
+            planData = parsed.plan
             // 从 content 中移除 JSON 部分，只显示 response_to_user
             displayContent = parsed.response_to_user || displayContent
             console.log('📊 从响应中提取到 Plan 数据')

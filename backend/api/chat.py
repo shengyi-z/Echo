@@ -82,7 +82,7 @@ async def initialize_user():
     """
     try:
         assistant_id = await ensure_assistant()
-        thread_id = create_thread(assistant_id)
+        thread_id = await create_thread(assistant_id)
 
         return InitResponse(
             assistant_id=assistant_id,
@@ -90,6 +90,9 @@ async def initialize_user():
             message="✅ 初始化成功，可以开始对话了！"
         )
     except Exception as e:
+        print(f"❌ 错误详情: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
 
 # Create a new chat thread.
@@ -102,18 +105,21 @@ async def create_new_chat(request: NewChatRequest):
     """
     try:
         assistant_id = await ensure_assistant()
-        thread_id = create_thread(assistant_id)
+        thread_id = await create_thread(assistant_id)
 
         from datetime import datetime
 
         title = request.title if request.title else "New Chat"
 
         return NewChatResponse(
-            thread_id=thread_id,
+            thread_id=str(thread_id),  # 转换 UUID 为字符串
             title=title,
             created_at=datetime.now().isoformat()
         )
     except Exception as e:
+        print(f"❌ 错误详情: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"创建新对话失败: {str(e)}")
 
 # Send user message and return AI reply.
@@ -132,11 +138,12 @@ async def send_chat_message(request: ChatRequest):
         )
 
     try:
+        
         # 发送消息，自动开启记忆和搜索
         print(f"\n📤 发送消息到 thread_id: {request.thread_id}")
         print(f"📝 用户消息: {request.message}")
         print("="*80)
-        content = send_message(request.thread_id, request.message)
+        content = await send_message(request.thread_id, request.message)
         print(f"\n🤖 AI 完整响应:\n{content}")
         print("="*80)
 
@@ -163,7 +170,7 @@ async def send_chat_message(request: ChatRequest):
                 plan_data = json.loads(json_str)
                 
                 # 检查是否包含goal和milestones字段
-                if "goal" in plan_data and "milestones" in plan_data:
+                if "goal" in plan_data:
                     print(f"\n📊 检测到planning格式，正在存储到数据库...")
                     
                     # 存储到数据库
@@ -172,7 +179,7 @@ async def send_chat_message(request: ChatRequest):
                         goal_repo = GoalRepository(session)
                         
                         goal_info = plan_data["goal"]
-                        milestones_data = plan_data["milestones"]
+                        milestones_data = plan_data.get("milestones", [])
                         
                         # 转换milestones格式
                         milestones_payload = []
