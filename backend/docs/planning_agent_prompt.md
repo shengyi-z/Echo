@@ -532,7 +532,6 @@ Today: 2026-01-15
 ```json
 {
   "response_to_user": "I've created a focused 4-week interview prep plan for your Google interview! The plan covers system design study, coding practice, behavioral prep, and logistics. With 15 hours/week, you'll be well-prepared and confident by February 10th. You've got this!",
-  
   "milestones": [
     {
       "title": "Week 1-2: Technical Foundation Review",

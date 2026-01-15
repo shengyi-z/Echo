@@ -2,6 +2,8 @@ from datetime import date, timedelta
 from typing import List, Mapping, Dict, Any, Optional
 import json
 import re
+import os
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -9,6 +11,18 @@ from uuid import UUID
 from ..repo.goal_repo import GoalRepository
 from ..schemas.plan import PlanRequest, PlanResponse, PlanMilestone, PlanTask, PlanArtifact, PlanInsights, PlanResource
 from .chat_service import ChatService
+
+
+# Load the planning agent prompt template
+def load_planning_prompt_template():
+    """Load the planning agent instruction document"""
+    prompt_path = Path(__file__).parent.parent / "docs" / "planning_agent_prompt.md"
+    try:
+        with open(prompt_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        print(f"⚠️  无法加载 planning prompt: {e}")
+        return None
 
 
 # Planning workflow orchestration for plan generation + persistence.
@@ -116,15 +130,42 @@ class PlanningService:
     # Construct the prompt to send to AI for plan generation
     def _build_planning_prompt(self, request: PlanRequest) -> str:
         """
-        Build a detailed prompt for the AI to generate a structured plan with clear timeline.
+        Build a detailed prompt for the AI to generate a structured plan using the 
+        planning agent instruction document with filled-in variables.
         """
         goal = request.goal
-        budget_str = f"${goal.budget}" if goal.budget else "灵活"
-        hours_str = f"{goal.weekly_hours} 小时/周" if goal.weekly_hours else "灵活"
+        budget_str = f"${goal.budget}" if goal.budget else "Flexible"
+        hours_str = str(goal.weekly_hours) if goal.weekly_hours else "Flexible"
         today = date.today().strftime("%Y-%m-%d")
 
+        # Load the planning prompt template
+        template = load_planning_prompt_template()
+        
+        if template:
+            # Fill in the template variables
+            # Note: The template uses these as examples, not actual template strings
+            # We'll append the actual goal info at the end
+            filled_prompt = template + f"""
+
+---
+
+## Current Planning Request
+
+**Goal Information:**
+- Title: {goal.title}
+- Type: {goal.type.value}
+- Deadline: {goal.deadline.strftime("%Y-%m-%d")}
+- Budget: {budget_str}
+- Weekly Available Hours: {hours_str}
+- Current Date: {today}
+
+Please generate a complete, structured plan following all the rules and format specifications above.
+"""
+            return filled_prompt
+        
+        # Fallback to simplified prompt if template loading fails
         prompt = f"""
-    我需要你帮我制定一个**详细的、可执行的、有清晰时间线的计划**来达成以下目标：
+I need you to help me create a **detailed, executable plan with a clear timeline** to achieve the following goal:
 
     **目标信息：**
     - 标题：{goal.title}

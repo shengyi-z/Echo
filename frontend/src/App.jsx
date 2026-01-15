@@ -5,6 +5,8 @@ import Calendar from './components/Calendar'
 import Dashboard from './components/Dashboard'
 import Settings from './components/Settings'
 import Sidebar from './components/Sidebar'
+import TentativePlan from './components/TentativePlan'
+import { savePlan, getCurrentPlan } from './utils/planStorage'
 import './App.css'
 
 const API_BASE_URL = 'http://localhost:8000'
@@ -34,16 +36,17 @@ function App() {
   const [editTitleValue, setEditTitleValue] = useState('')
   const [chatOrder, setChatOrder] = useState([])
   const [chatSearch, setChatSearch] = useState('')
+  const [showPlan, setShowPlan] = useState(false)
   const chatScrollRef = useRef(null)
 
-  // 鑷姩婊氬姩鍒版渶鏂版秷鎭?
+  // Auto-scroll to latest message
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
   }, [messages])
 
-  // 鐢ㄦ埛鐧诲綍鏃跺垵濮嬪寲鎴栧姞杞戒繚瀛樼殑瀵硅瘽
+  // Initialize or load saved chat sessions on user login
   useEffect(() => {
     const savedSessions = localStorage.getItem('chatSessions')
     const savedThreadId = localStorage.getItem('currentThreadId')
@@ -61,7 +64,7 @@ function App() {
         setMessages(currentSession.messages)
       }
       
-      console.log('鉁?Loaded saved sessions from localStorage')
+      console.log('✅ Loaded saved sessions from localStorage')
       return
     }
 
@@ -98,16 +101,16 @@ function App() {
         localStorage.setItem('currentThreadId', data.thread_id)
         localStorage.setItem('assistantId', data.assistant_id)
         
-        console.log('鉁?Chat initialized:', data.message)
+        console.log('✅ Chat initialized:', data.message)
       } catch (error) {
-        console.error('鉂?Initialization failed:', error)
+        console.error('❌ Initialization failed:', error)
       }
     }
 
     initializeChat()
   }, [])
 
-  // 淇濆瓨瀵硅瘽鍘嗗彶鍒?localStorage
+  // Save chat history to localStorage
   useEffect(() => {
     if (chatSessions.length > 0 && isInitialized) {
       localStorage.setItem('chatSessions', JSON.stringify(chatSessions))
@@ -127,13 +130,13 @@ function App() {
     return () => mediaQuery.removeEventListener('change', syncState)
   }, [])
 
-  // 鐢熸垚鍞竴鐨?New Chat 鏍囬
+  // Generate unique 'New Chat' title
   const getUniqueNewChatTitle = () => {
     const existingTitles = chatSessions.map(s => s.title)
     let counter = 1
     let title = 'New Chat'
     
-    // 濡傛灉 "New Chat" 宸插瓨鍦紝灏濊瘯 "New Chat 1", "New Chat 2"...
+    // If 'New Chat' already exists, try 'New Chat 1', 'New Chat 2', etc.
     while (existingTitles.includes(title)) {
       title = `New Chat ${counter}`
       counter++
@@ -142,7 +145,7 @@ function App() {
     return title
   }
 
-  // 鍒涘缓鏂板璇?
+  // Create new chat
   const handleNewChat = async () => {
     try {
       console.log('馃啎 Creating new chat...')
@@ -166,7 +169,7 @@ function App() {
       }
 
       const data = await response.json()
-      console.log('鉁?New chat created:', data)
+      console.log('✅ New chat created:', data)
       
       const newSession = {
         id: data.thread_id,
@@ -188,13 +191,13 @@ function App() {
       
       localStorage.setItem('currentThreadId', data.thread_id)
       
-      console.log('馃摑 Chat sessions updated')
+      console.log('📝 Chat sessions updated')
     } catch (error) {
-      console.error('鉂?Failed to create new chat:', error)
+      console.error('❌ Failed to create new chat:', error)
     }
   }
 
-  // 鍒囨崲瀵硅瘽
+  // Switch chat
   const handleSelectChat = (chatId) => {
     const session = chatSessions.find(s => s.id === chatId)
     if (session) {
@@ -208,7 +211,7 @@ function App() {
     }
   }
 
-  // 鏇存柊瀵硅瘽鏍囬
+  // Update chat title
   const handleUpdateTitle = async (threadId, newTitle) => {
     if (!newTitle.trim()) return
     
@@ -232,13 +235,13 @@ function App() {
         )
       )
       
-      console.log('鉁?Title updated:', newTitle)
+      console.log('✅ Title updated:', newTitle)
     } catch (error) {
-      console.error('鉂?Failed to update title:', error)
+      console.error('❌ Failed to update title:', error)
     }
   }
 
-  // 寮€濮嬬紪杈戞爣棰橈紙Chat Area锛?
+  // Start editing title (Chat Area)
   const handleStartEditTitle = () => {
     const currentSession = chatSessions.find(s => s.thread_id === currentThreadId)
     if (currentSession) {
@@ -247,7 +250,7 @@ function App() {
     }
   }
 
-  // 淇濆瓨鏍囬缂栬緫锛圕hat Area锛?
+  // Save title edit (Chat Area)
   const handleSaveTitleEdit = () => {
     if (editTitleValue.trim() && currentThreadId) {
       handleUpdateTitle(currentThreadId, editTitleValue.trim())
@@ -255,13 +258,13 @@ function App() {
     setIsEditingTitle(false)
   }
 
-  // 鍙栨秷鏍囬缂栬緫锛圕hat Area锛?
+  // Cancel title edit (Chat Area)
   const handleCancelTitleEdit = () => {
     setIsEditingTitle(false)
     setEditTitleValue('')
   }
 
-  // 鏇存柊褰撳墠瀵硅瘽鐨勬秷鎭?
+  // Update current chat messages
   const updateCurrentSessionMessages = (newMessages, suggestedTitle = null) => {
     setChatSessions(prev =>
       prev.map(session => {
@@ -272,7 +275,7 @@ function App() {
             isFirstMessage: false
           }
           
-          // 濡傛灉鏈夊缓璁殑鏍囬锛屽苟涓斿綋鍓嶆爣棰樿繕鏄?"New Chat" 绯诲垪锛屽垯鑷姩鏇存柊
+          // If suggested title exists and current title is still 'New Chat' series, auto-update
           if (suggestedTitle && session.title.match(/^New Chat( \d+)?$/)) {
             updates.title = suggestedTitle
             handleUpdateTitle(currentThreadId, suggestedTitle)
@@ -285,7 +288,7 @@ function App() {
     )
   }
 
-  // 鍙戦€佹秷鎭?
+  // Send message
   const handleSend = async () => {
     if (!draft.trim() || isLoading || !isInitialized || !currentThreadId) return
     
@@ -319,15 +322,40 @@ function App() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}\nMessage: ${await response.text()}`)
       }
 
       const data = await response.json()
+      
+      // 尝试从 content 中提取 plan 数据
+      let planData = null
+      let displayContent = data.content
+      
+      try {
+        // 检查 content 是否包含 JSON 格式的 plan
+        const jsonMatch = data.content.match(/```json\s*([\s\S]*?)\s*```/)
+        if (jsonMatch) {
+          const jsonStr = jsonMatch[1].trim()
+          const parsed = JSON.parse(jsonStr)
+          console.log('📊 提取到 JSON 数据:', parsed)
+          // 检查是否是 plan 格式 (包含 milestones, insights, resources)
+          if (parsed.goal) {
+            planData = parsed
+            // 从 content 中移除 JSON 部分，只显示 response_to_user
+            displayContent = parsed.response_to_user || displayContent
+            console.log('📊 从响应中提取到 Plan 数据')
+            savePlan(planData)
+            setShowPlan(true)
+          }
+        }
+      } catch (e) {
+        console.log('ℹ️  响应中没有有效的 plan 数据')
+      }
 
       const aiMessage = {
         id: `m-${Date.now()}-ai`,
         role: 'assistant',
-        content: data.content,
+        content: displayContent,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
       
@@ -335,7 +363,7 @@ function App() {
       setMessages(updatedMessages)
       updateCurrentSessionMessages(updatedMessages, data.suggested_title)
     } catch (error) {
-      console.error('Failed to send message:', error)
+      console.error('Failed to send message:', error.message)
       const errorMessage = {
         id: `m-${Date.now()}-error`,
         role: 'assistant',
@@ -350,16 +378,16 @@ function App() {
     }
   }
 
-  // 鍒犻櫎瀵硅瘽
+  // Delete chat
   const handleDeleteChat = async (threadId) => {
     if (!confirm('Are you sure you want to delete this chat?')) return
     
     try {
-      // 浠庡垪琛ㄤ腑绉婚櫎
+      // Remove from list
       const updatedSessions = chatSessions.filter(s => s.thread_id !== threadId)
       setChatSessions(updatedSessions)
       
-      // 濡傛灉鍒犻櫎鐨勬槸褰撳墠瀵硅瘽锛屽垏鎹㈠埌绗竴涓璇?
+      // If deleted chat is current, switch to first chat
       if (currentThreadId === threadId) {
         if (updatedSessions.length > 0) {
           const firstSession = updatedSessions[0]
@@ -367,18 +395,18 @@ function App() {
           setMessages(firstSession.messages)
           localStorage.setItem('currentThreadId', firstSession.thread_id)
         } else {
-          // 濡傛灉娌℃湁瀵硅瘽浜嗭紝鍒涘缓鏂板璇?
+          // If no chats left, create new chat
           handleNewChat()
         }
       }
       
-      console.log('鉁?Chat deleted:', threadId)
+      console.log('✅ Chat deleted:', threadId)
     } catch (error) {
-      console.error('鉂?Failed to delete chat:', error)
+      console.error('❌ Failed to delete chat:', error)
     }
   }
 
-  // 缃《/鍙栨秷缃《瀵硅瘽
+  // Pin/unpin chat
   const handlePinChat = (threadId) => {
     setChatSessions(prev =>
       prev.map(session =>
@@ -390,7 +418,7 @@ function App() {
     console.log('Chat pin toggled:', threadId)
   }
 
-  // 打印当前对话记录。
+  // Print current chat history
   const handleExport = () => {
     window.print()
   }
@@ -400,7 +428,7 @@ function App() {
     setChatOrder(nextOrder)
   }
 
-  // 转换对话列表格式给 Sidebar
+  // Convert chat list format for Sidebar
   const chatHistoryItems = chatSessions.map(session => ({
     id: session.id,
     thread_id: session.thread_id,
@@ -410,7 +438,7 @@ function App() {
     isPinned: session.isPinned || false
   }))
 
-  // 根据搜索词过滤对话（标题/预览/内容）。
+  // Filter chats by search query (title/preview/content)
   const filteredChatHistoryItems = (() => {
     const query = chatSearch.trim().toLowerCase()
     if (!query) return chatHistoryItems
@@ -466,7 +494,7 @@ function App() {
             onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
           />
         ) : (
-          <>
+          <div className="chat-container">
             <header className="chat-header">
               {isSmallScreen && (
                 <button
@@ -503,30 +531,51 @@ function App() {
                 )}
                 <p>Long term goals, broken into weekly steps.</p>
               </div>
-              <button className="ghost-button" onClick={handleExport}>Export</button>
+              <div className="header-actions">
+                {showPlan && (
+                  <button 
+                    className="ghost-button" 
+                    onClick={() => setShowPlan(!showPlan)}
+                    title="Toggle plan view"
+                  >
+                    {showPlan ? '📋 Hide Plan' : '📋 Show Plan'}
+                  </button>
+                )}
+                <button className="ghost-button" onClick={handleExport}>Export</button>
+              </div>
             </header>
 
-            <section className="chat-scroll" ref={chatScrollRef}>
-              {messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  role={message.role}
-                  content={message.content}
-                  time={message.time}
-                />
-              ))}
-              {isLoading && (
-                <ChatMessage
-                  key="loading"
-                  role="assistant"
-                  content="Thinking..."
-                  time=""
-                />
-              )}
-            </section>
+            <div className={`chat-content ${showPlan ? 'split-view' : ''}`}>
+              <div className="chat-main">
+                <section className="chat-scroll" ref={chatScrollRef}>
+                  {messages.map((message) => (
+                    <ChatMessage
+                      key={message.id}
+                      role={message.role}
+                      content={message.content}
+                      time={message.time}
+                    />
+                  ))}
+                  {isLoading && (
+                    <ChatMessage
+                      key="loading"
+                      role="assistant"
+                      content="Thinking..."
+                      time=""
+                    />
+                  )}
+                </section>
 
-            <ChatInput value={draft} onChange={setDraft} onSend={handleSend} />
-          </>
+                <ChatInput value={draft} onChange={setDraft} onSend={handleSend} />
+              </div>
+
+              {showPlan && (
+                <div className="plan-panel">
+                  <TentativePlan />
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </main>
     </div>

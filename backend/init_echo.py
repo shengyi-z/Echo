@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import requests
+from pathlib import Path
 from dotenv import load_dotenv
 from backboard import BackboardClient
 
@@ -9,6 +10,21 @@ from backboard import BackboardClient
 load_dotenv()
 
 BASE_URL = "https://app.backboard.io/api"
+
+# 读取 system prompt
+def load_system_prompt():
+    """
+    从 docs/planning_agent_prompt.md 读取 system prompt
+    """
+    prompt_path = Path(__file__).parent / "docs" / "planning_agent_prompt.md"
+    try:
+        with open(prompt_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        print(f"✅ System prompt 加载成功 ({len(content)} 字符)")
+        return content
+    except Exception as e:
+        print(f"⚠️  无法加载 system prompt: {e}")
+        return None
 
 # ---------------------------------------------------------
 # 核心功能：确保助手已初始化
@@ -32,11 +48,19 @@ async def ensure_assistant():
     print("🔧 正在创建新助手...")
     client = BackboardClient(api_key=api_key)
     
+    # 获取模型配置，默认使用 gemini-2.5-flash
+    model = os.getenv("BACKBOARD_MODEL", "gemini-2.5-flash")
+    print(f"🤖 使用模型: {model}")
+    
     try:
+        # 使用简洁的描述创建 assistant
+        # 详细的 planning prompt 会在实际生成计划时作为消息发送
         assistant = await client.create_assistant(
-            name="Echo Daily Secretary",
-            description="你是一个专业的长期目标规划员和生活助理。你会把目标拆解为可执行的里程碑，使用搜索工具寻找最有性价比的方案，并帮助用户管理日常任务。"
+            name="Echo Planning Agent",
+            description="You are an expert planning assistant and life coach specializing in breaking down complex goals into actionable, time-bound execution plans. You create realistic, evidence-based plans with clear milestones, tasks, insights, and resources. You respond in structured JSON format when generating plans.",
+            model=model
         )
+        
         assistant_id = assistant.assistant_id
         print(f"✅ 助手创建成功! ID: {assistant_id}")
         
