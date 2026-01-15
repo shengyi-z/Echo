@@ -6,7 +6,7 @@ import Dashboard from './components/Dashboard'
 import Settings from './components/Settings'
 import Sidebar from './components/Sidebar'
 import TentativePlan from './components/TentativePlan'
-import { savePlan, getCurrentPlan } from './utils/planStorage'
+import { savePlan, getPlanByThreadId } from './utils/planStorage'
 import './App.css'
 
 const API_BASE_URL = 'http://localhost:8000'
@@ -47,22 +47,31 @@ function App() {
     }
   }, [messages])
 
-  // Load current plan on mount
+  // Load plan for current thread
   useEffect(() => {
-    const plan = getCurrentPlan()
-    if (plan) {
-      setCurrentPlan(plan)
-      setShowPlan(true)
+    if (currentThreadId) {
+      const plan = getPlanByThreadId(currentThreadId)
+      if (plan) {
+        setCurrentPlan(plan)
+        setShowPlan(true)
+      } else {
+        setCurrentPlan(null)
+        setShowPlan(false)
+      }
     }
-  }, [])
+  }, [currentThreadId])
 
   // Listen for plan updates from localStorage
   useEffect(() => {
-    const handlePlanUpdate = () => {
-      const plan = getCurrentPlan()
-      setCurrentPlan(plan)
-      if (plan && !showPlan) {
-        setShowPlan(true)
+    const handlePlanUpdate = (event) => {
+      // 只更新当前 thread 的 plan
+      const { threadId } = event.detail || {}
+      if (threadId && threadId === currentThreadId) {
+        const plan = getPlanByThreadId(currentThreadId)
+        setCurrentPlan(plan)
+        if (plan && !showPlan) {
+          setShowPlan(true)
+        }
       }
     }
 
@@ -72,7 +81,7 @@ function App() {
     return () => {
       window.removeEventListener('planUpdated', handlePlanUpdate)
     }
-  }, [showPlan])
+  }, [currentThreadId, showPlan])
 
   // Initialize or load saved chat sessions on user login
   useEffect(() => {
@@ -386,13 +395,10 @@ function App() {
             console.log('   - milestones:', planData.milestones?.length)
             console.log('   - resources:', planData.resources?.length)
             
-            // Save plan and trigger update
-            savePlan(planData)
+            // Save plan with current thread_id
+            savePlan(currentThreadId, planData)
             setCurrentPlan(planData)
             setShowPlan(true)
-            
-            // Dispatch custom event for real-time update
-            window.dispatchEvent(new Event('planUpdated'))
           }
         }
       } catch (e) {
@@ -609,7 +615,7 @@ function App() {
 
               {showPlan && (
                 <div className="plan-panel">
-                  <TentativePlan plan={currentPlan} />
+                  <TentativePlan plan={currentPlan} threadId={currentThreadId} />
                 </div>
               )}
             </div>

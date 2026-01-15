@@ -1270,18 +1270,49 @@
 }
 
 .chat-content.split-view .chat-main {
-  flex: 0 0 55%; /* 55% width when plan is shown */
+  flex: 0 0 58%; /* 58% width when plan is shown */
+  padding-right: 24px; /* Space for floating panel */
 }
 
-/* Plan panel - shown when split view is active */
+/* Plan panel - floating modern design */
 .plan-panel {
-  flex: 0 0 45%; /* 45% width */
-  border-left: 1px solid var(--border-subtle);
-  background: var(--bg-primary);
-  overflow-y: auto;
-  overflow-x: hidden;
+  flex: 0 0 42%; /* 42% width */
+  padding: 20px;
   display: flex;
   flex-direction: column;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.plan-panel .tentative-plan {
+  background: var(--surface-raised);
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease;
+}
+
+.plan-panel .tentative-plan:hover {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 /* Header actions */
@@ -1299,13 +1330,26 @@
   
   .chat-content.split-view .chat-main {
     flex: 0 0 50%;
-    border-right: none;
+    padding-right: 0;
   }
   
   .plan-panel {
     flex: 0 0 50%;
-    border-left: none;
-    border-top: 1px solid var(--border-subtle);
+    padding: 16px;
+  }
+  
+  .plan-panel .tentative-plan {
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .plan-panel {
+    padding: 12px;
+  }
+  
+  .plan-panel .tentative-plan {
+    border-radius: 8px;
   }
 }
 

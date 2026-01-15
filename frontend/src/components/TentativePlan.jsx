@@ -1,33 +1,28 @@
-import { useEffect, useState } from 'react'
-import { getCurrentPlan } from '../utils/planStorage'
+import { useEffect } from 'react'
 import './TentativePlan.css'
 
 /**
  * TentativePlan Component
  * Displays the current plan with milestones, insights, and resources
- * Updates in real-time when plan changes
+ * Plan is managed by parent component (App.jsx) and passed via props
  */
-function TentativePlan({ plan: externalPlan }) {
-  const [plan, setPlan] = useState(externalPlan || null)
-
-  // Load plan from localStorage or use external prop
+function TentativePlan({ plan, threadId }) {
+  
+  // Debug log when plan changes
   useEffect(() => {
-    if (externalPlan) {
-      setPlan(externalPlan)
-    } else {
-      const loadPlan = () => {
-        const currentPlan = getCurrentPlan()
-        setPlan(currentPlan)
-      }
-      loadPlan()
+    if (plan) {
+      console.log('📋 TentativePlan received plan:', {
+        milestones: plan.milestones?.length,
+        insights: plan.insights?.length,
+        resources: plan.resources?.length
+      })
     }
-  }, [externalPlan])
+  }, [plan])
 
-  // Listen for plan updates
+  // No need to listen for updates - parent handles plan loading
   useEffect(() => {
     const handlePlanUpdate = () => {
-      const currentPlan = getCurrentPlan()
-      setPlan(currentPlan)
+      console.log('📢 Plan update event received (handled by parent)')
     }
 
     window.addEventListener('planUpdated', handlePlanUpdate)
@@ -49,8 +44,11 @@ function TentativePlan({ plan: externalPlan }) {
   return (
     <div className="tentative-plan">
       <div className="plan-header">
-        <h2>📊 Your Plan</h2>
-        <span className="plan-badge">Active</span>
+        <div className="header-top">
+          <h2>📊 Your Plan</h2>
+          <span className="plan-badge">Active</span>
+        </div>
+        <p className="plan-hint">View this plan in Dashboard to track progress</p>
       </div>
 
       <div className="plan-content">
