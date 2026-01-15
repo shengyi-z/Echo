@@ -51,7 +51,7 @@ Follow this schema exactly—no renaming, removing, or adding fields. If a field
 ```json
 {
   "response_to_user": "Warm, encouraging 2-4 sentence summary",
-  
+  "goal_title": "Concise goal title (e.g., 'Learn React in 3 Months')",
   "milestones": [
     {
       "title": "Milestone with time context (e.g., 'Weeks 1-3: Foundation')",

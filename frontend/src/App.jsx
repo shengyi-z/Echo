@@ -385,6 +385,7 @@ function App() {
             // Build plan data for TentativePlan component
             planData = {
               response_to_user: parsed.response_to_user,
+              goal_title: parsed.goal_title,
               milestones: parsed.milestones,
               insights: parsed.insights,
               resources: parsed.resources

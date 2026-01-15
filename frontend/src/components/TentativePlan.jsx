@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import './TentativePlan.css'
 
 /**
@@ -7,6 +7,15 @@ import './TentativePlan.css'
  * Plan is managed by parent component (App.jsx) and passed via props
  */
 function TentativePlan({ plan, threadId }) {
+  const [isConfirmed, setIsConfirmed] = useState(false)
+  
+  // Check if plan is already confirmed when it loads
+  useEffect(() => {
+    if (plan && threadId) {
+      const confirmed = localStorage.getItem(`plan-confirmed-${threadId}`)
+      setIsConfirmed(confirmed === 'true')
+    }
+  }, [plan, threadId])
   
   // Debug log when plan changes
   useEffect(() => {
@@ -28,6 +37,20 @@ function TentativePlan({ plan, threadId }) {
     window.addEventListener('planUpdated', handlePlanUpdate)
     return () => window.removeEventListener('planUpdated', handlePlanUpdate)
   }, [])
+  
+  // Handle confirm plan
+  const handleConfirm = () => {
+    if (!threadId || !plan) return
+    
+    // Mark as confirmed in localStorage
+    localStorage.setItem(`plan-confirmed-${threadId}`, 'true')
+    setIsConfirmed(true)
+    
+    // Trigger dashboard update
+    window.dispatchEvent(new CustomEvent('planUpdated', { detail: { threadId } }))
+    
+    console.log('✅ Plan confirmed for thread:', threadId)
+  }
 
   if (!plan) {
     return (
@@ -45,10 +68,21 @@ function TentativePlan({ plan, threadId }) {
     <div className="tentative-plan">
       <div className="plan-header">
         <div className="header-top">
-          <h2>📊 Your Plan</h2>
-          <span className="plan-badge">Active</span>
+          <h2>📊 {plan.goal_title || 'Your Plan'}</h2>
+          <span className={`plan-badge ${isConfirmed ? 'confirmed' : 'pending'}`}>
+            {isConfirmed ? 'Confirmed' : 'Pending'}
+          </span>
         </div>
-        <p className="plan-hint">View this plan in Dashboard to track progress</p>
+        {!isConfirmed && (
+          <button className="confirm-plan-btn" onClick={handleConfirm}>
+            ✓ Confirm Plan
+          </button>
+        )}
+        {isConfirmed && (
+          <p className="plan-hint confirmed">
+            ✅ This plan is confirmed and displayed in Dashboard
+          </p>
+        )}
       </div>
 
       <div className="plan-content">

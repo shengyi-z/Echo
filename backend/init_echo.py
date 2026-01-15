@@ -188,14 +188,21 @@ async def send_message(thread_id: str, user_input: str) -> str:
             memory="Auto",       # 开启自动记忆
             # web_search="Auto",   # 开启联网搜索
             stream=False,
+            model_name=model,
+            llm_provider=provider
         )
         
         print(f"\n📨 Backboard SDK 响应类型: {type(response)}")
-        print(f"📨 响应对象属性: {dir(response)}")
+        print(f"📨 响应状态: {response.status}")
         
-        # 检查是否有工具调用请求
-        if response.status == "REQUIRES_ACTION" and response.tool_calls:
-            print(f"\n🔧 检测到工具调用: {len(response.tool_calls)} 个")
+        # 处理工具调用循环，最多尝试 5 次
+        max_iterations = 5
+        iteration = 0
+        
+        while response.status == "REQUIRES_ACTION" and response.tool_calls and iteration < max_iterations:
+            iteration += 1
+            print(f"\n🔧 工具调用迭代 {iteration}/{max_iterations}")
+            print(f"   检测到 {len(response.tool_calls)} 个工具调用")
             
             # 准备工具输出
             tool_outputs = []
@@ -220,28 +227,48 @@ async def send_message(thread_id: str, user_input: str) -> str:
                         "output": f"Error: Tool {tool_name} not found"
                     })
             
-            # 使用 submit_tool_outputs 提交工具结果
+            # 提交工具结果
             if tool_outputs and hasattr(response, 'run_id'):
                 print(f"\n📤 提交工具输出到 run_id: {response.run_id}")
                 response = await client.submit_tool_outputs(
                     thread_id=thread_id,
                     run_id=response.run_id,
-                    tool_outputs=tool_outputs
+                    tool_outputs=tool_outputs,
                 )
                 print(f"   ✅ 工具结果已提交，新状态: {response.status}")
+                
+                # 如果状态是 COMPLETED，跳出循环
+                if response.status == "COMPLETED":
+                    print(f"   🎉 工具调用完成！")
+                    break
+                    
+                # 如果还是 REQUIRES_ACTION，继续下一轮
+                if response.status == "REQUIRES_ACTION":
+                    print(f"   ⏳ 需要继续处理工具调用...")
+                    continue
+            else:
+                break
+        
+        # 检查是否达到最大迭代次数
+        if iteration >= max_iterations:
+            print(f"⚠️ 达到最大工具调用迭代次数 ({max_iterations})，停止处理")
         
         # 获取最终的 AI 响应内容
-        if hasattr(response, 'content'):
+        if hasattr(response, 'content') and response.content:
             content = response.content
         else:
-            content = str(response)
-            
-        if not content:
-            print(f"⚠️ 响应内容为空！完整响应对象: {response}")
-            raise Exception(f"Backboard SDK 返回了空内容")
+            # 如果 content 为空，尝试从 thread 获取最后一条消息
+            print(f"⚠️ 响应 content 为空，尝试获取最后一条消息...")
+            messages = await client.get_messages(thread_id=thread_id, limit=1)
+            if messages and len(messages) > 0 and messages[0].role == 'assistant':
+                content = messages[0].content
+                print(f"   ✅ 从消息历史获取到内容")
+            else:
+                content = "I've processed your request, but I couldn't generate a response. Please try again."
+                print(f"   ⚠️ 无法获取响应内容，使用默认消息")
         
         print(f"\n✅ AI 完整响应:")
-        print(f"   {content}")
+        print(f"   {content[:200]}..." if len(content) > 200 else f"   {content}")
         print("="*80)
         
         return content

@@ -43,8 +43,27 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
         return
       }
       
-      // Use the most recently updated plan as active goal
-      const sortedPlans = planEntries.sort((a, b) => {
+      // Filter only confirmed plans
+      const confirmedPlans = planEntries.filter(([threadId]) => {
+        return localStorage.getItem(`plan-confirmed-${threadId}`) === 'true'
+      })
+      
+      if (confirmedPlans.length === 0) {
+        setDashboardData({
+          active_goal: null,
+          today_tasks: [],
+          risk_alerts: [{
+            message: 'No confirmed plans yet. Create and confirm a plan in chat to see it here.',
+            severity: 'low'
+          }]
+        })
+        setError(null)
+        setLoading(false)
+        return
+      }
+      
+      // Use the most recently updated confirmed plan as active goal
+      const sortedPlans = confirmedPlans.sort((a, b) => {
         const dateA = new Date(a[1].updatedAt || 0)
         const dateB = new Date(b[1].updatedAt || 0)
         return dateB - dateA
@@ -70,8 +89,8 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    // Extract goal title from response_to_user or use default
-    const goalTitle = plan.response_to_user?.split('\n')[0] || 'My Goal'
+    // Extract goal title from plan
+    const goalTitle = plan.goal_title || plan.response_to_user?.split('\n')[0] || 'My Goal'
     
     // Calculate progress (assume 0% for tentative plans)
     const progress = 0
