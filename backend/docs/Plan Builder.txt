@@ -72,7 +72,7 @@ Return your response as **valid JSON** wrapped in markdown code fences for clari
 
 ```json
 {
-  "response_to_user": "A warm, encouraging 2-4 sentence summary explaining the plan you've created. Example: 'I've created a comprehensive 12-week plan to help you reach B2 level French! The plan starts with foundational grammar and builds up to conversation practice and exam preparation. With 10 hours per week, you'll progress through 4 major milestones, each with clear success criteria. Let's get started!'",
+  "response_to_user": "A warm, encouraging 2-4 sentence summary explaining the plan you've created, summarized all information listed below in the response. Example: 'I've created a comprehensive 12-week plan to help you reach B2 level French! The plan starts with foundational grammar and builds up to conversation practice and exam preparation. With 10 hours per week, you'll progress through 4 major milestones, each with clear success criteria. Let's get started!'",
   
   "milestones": [
     {
