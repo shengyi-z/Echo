@@ -17,6 +17,10 @@ export const savePlan = (plan) => {
     localStorage.setItem('currentPlan', JSON.stringify(plan))
     localStorage.setItem('planUpdatedAt', new Date().toISOString())
     console.log('✅ Plan 已保存到 localStorage')
+    
+    // Trigger custom event for real-time updates in same window
+    window.dispatchEvent(new Event('planUpdated'))
+    
     return true
   } catch (error) {
     console.error('❌ 保存 Plan 失败:', error)

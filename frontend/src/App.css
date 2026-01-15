@@ -1243,7 +1243,7 @@
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -1257,7 +1257,7 @@
 }
 
 .chat-content.split-view {
-  gap: 1px;
+  /* Side-by-side layout when plan is shown */
 }
 
 /* Main chat area - contains chat-scroll and chat-input */
@@ -1269,21 +1269,44 @@
   height: 100%;
 }
 
+.chat-content.split-view .chat-main {
+  flex: 0 0 55%; /* 55% width when plan is shown */
+}
+
 /* Plan panel - shown when split view is active */
 .plan-panel {
-  width: clamp(320px, 35vw, 480px);
+  flex: 0 0 45%; /* 45% width */
   border-left: 1px solid var(--border-subtle);
   background: var(--bg-primary);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* Header actions for plan toggle */
+/* Header actions */
 .header-actions {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+/* Responsive: Stack vertically on tablets and below */
+@media (max-width: 900px) {
+  .chat-content.split-view {
+    flex-direction: column;
+  }
+  
+  .chat-content.split-view .chat-main {
+    flex: 0 0 50%;
+    border-right: none;
+  }
+  
+  .plan-panel {
+    flex: 0 0 50%;
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
+  }
 }
 
 /* Adjust chat-scroll for split view */

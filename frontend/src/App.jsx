@@ -37,6 +37,7 @@ function App() {
   const [chatOrder, setChatOrder] = useState([])
   const [chatSearch, setChatSearch] = useState('')
   const [showPlan, setShowPlan] = useState(false)
+  const [currentPlan, setCurrentPlan] = useState(null)
   const chatScrollRef = useRef(null)
 
   // Auto-scroll to latest message
@@ -45,6 +46,33 @@ function App() {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
   }, [messages])
+
+  // Load current plan on mount
+  useEffect(() => {
+    const plan = getCurrentPlan()
+    if (plan) {
+      setCurrentPlan(plan)
+      setShowPlan(true)
+    }
+  }, [])
+
+  // Listen for plan updates from localStorage
+  useEffect(() => {
+    const handlePlanUpdate = () => {
+      const plan = getCurrentPlan()
+      setCurrentPlan(plan)
+      if (plan && !showPlan) {
+        setShowPlan(true)
+      }
+    }
+
+    // Custom event for same-window updates
+    window.addEventListener('planUpdated', handlePlanUpdate)
+    
+    return () => {
+      window.removeEventListener('planUpdated', handlePlanUpdate)
+    }
+  }, [showPlan])
 
   // Initialize or load saved chat sessions on user login
   useEffect(() => {
@@ -327,29 +355,48 @@ function App() {
 
       const data = await response.json()
       
-      // 尝试从 content 中提取 plan 数据
+      // Extract plan data from content
       let planData = null
       let displayContent = data.content
       console.log('🤖 AI 原始响应内容:', data.content)
+      
       try {
-        // 检查 content 是否包含 JSON 格式的 plan
+        // Check if content contains JSON format plan
         const jsonMatch = data.content.match(/```json\s*([\s\S]*?)\s*```/)
         if (jsonMatch) {
           const jsonStr = jsonMatch[1].trim()
           const parsed = JSON.parse(jsonStr)
           console.log('📊 提取到 JSON 数据:', parsed)
-          // 检查是否是 plan 格式 (包含 milestones, insights, resources)
-          if (parsed.goal) {
-            planData = parsed.plan
-            // 从 content 中移除 JSON 部分，只显示 response_to_user
-            displayContent = parsed.response_to_user || displayContent
-            console.log('📊 从响应中提取到 Plan 数据')
+          
+          // Check if it's a plan format (contains response_to_user, milestones, insights, resources)
+          if (parsed.response_to_user && parsed.milestones) {
+            // Extract response_to_user for chat display
+            displayContent = parsed.response_to_user
+            
+            // Build plan data for TentativePlan component
+            planData = {
+              response_to_user: parsed.response_to_user,
+              milestones: parsed.milestones,
+              insights: parsed.insights,
+              resources: parsed.resources
+            }
+            
+            console.log('✅ 从响应中提取到 Plan 数据')
+            console.log('   - response_to_user:', displayContent)
+            console.log('   - milestones:', planData.milestones?.length)
+            console.log('   - resources:', planData.resources?.length)
+            
+            // Save plan and trigger update
             savePlan(planData)
+            setCurrentPlan(planData)
             setShowPlan(true)
+            
+            // Dispatch custom event for real-time update
+            window.dispatchEvent(new Event('planUpdated'))
           }
         }
       } catch (e) {
-        console.log('ℹ️  响应中没有有效的 plan 数据')
+        console.log('ℹ️ 响应中没有有效的 plan 数据:', e.message)
       }
 
       const aiMessage = {
@@ -532,15 +579,6 @@ function App() {
                 <p>Long term goals, broken into weekly steps.</p>
               </div>
               <div className="header-actions">
-                {showPlan && (
-                  <button 
-                    className="ghost-button" 
-                    onClick={() => setShowPlan(!showPlan)}
-                    title="Toggle plan view"
-                  >
-                    {showPlan ? '📋 Hide Plan' : '📋 Show Plan'}
-                  </button>
-                )}
                 <button className="ghost-button" onClick={handleExport}>Export</button>
               </div>
             </header>
@@ -571,7 +609,7 @@ function App() {
 
               {showPlan && (
                 <div className="plan-panel">
-                  <TentativePlan />
+                  <TentativePlan plan={currentPlan} />
                 </div>
               )}
             </div>

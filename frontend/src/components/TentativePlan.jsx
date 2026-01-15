@@ -4,29 +4,34 @@ import './TentativePlan.css'
 
 /**
  * TentativePlan Component
- * 显示基于当前 plan response 的临时计划
+ * Displays the current plan with milestones, insights, and resources
+ * Updates in real-time when plan changes
  */
-function TentativePlan() {
-  const [plan, setPlan] = useState(null)
+function TentativePlan({ plan: externalPlan }) {
+  const [plan, setPlan] = useState(externalPlan || null)
 
-  // 加载保存的 plan
+  // Load plan from localStorage or use external prop
   useEffect(() => {
-    const loadPlan = () => {
+    if (externalPlan) {
+      setPlan(externalPlan)
+    } else {
+      const loadPlan = () => {
+        const currentPlan = getCurrentPlan()
+        setPlan(currentPlan)
+      }
+      loadPlan()
+    }
+  }, [externalPlan])
+
+  // Listen for plan updates
+  useEffect(() => {
+    const handlePlanUpdate = () => {
       const currentPlan = getCurrentPlan()
       setPlan(currentPlan)
     }
 
-    loadPlan()
-
-    // 监听 storage 事件，实时更新
-    const handleStorageChange = (e) => {
-      if (e.key === 'currentPlan') {
-        loadPlan()
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    window.addEventListener('planUpdated', handlePlanUpdate)
+    return () => window.removeEventListener('planUpdated', handlePlanUpdate)
   }, [])
 
   if (!plan) {
@@ -44,8 +49,8 @@ function TentativePlan() {
   return (
     <div className="tentative-plan">
       <div className="plan-header">
-        <h2>📊 Tentative Plan</h2>
-        <span className="plan-badge">Draft</span>
+        <h2>📊 Your Plan</h2>
+        <span className="plan-badge">Active</span>
       </div>
 
       <div className="plan-content">
