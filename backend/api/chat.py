@@ -2,6 +2,8 @@
 Chat API - Handle user messages and communicate with Backboard AI
 """
 import os
+import json
+import re
 from typing import Optional
 
 import requests
@@ -9,6 +11,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..init_echo import ensure_assistant, create_thread, send_message
+from ..core.db import SessionLocal
+from ..repo.goal_repo import GoalRepository
 
 # Router config and Backboard base URL.
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -141,6 +145,81 @@ async def send_chat_message(request: ChatRequest):
         # 如果是第一条消息，使用 AI 生成标题
         if request.is_first_message:
             suggested_title = await generate_chat_title_with_ai(request.message)
+        
+        # 检查AI响应是否包含planning格式的JSON
+        try:
+            # 提取JSON（可能被markdown包裹）
+            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                json_match = re.search(r'\{.*"goal".*"milestones".*\}', content, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                else:
+                    json_str = None
+            
+            if json_str:
+                plan_data = json.loads(json_str)
+                
+                # 检查是否包含goal和milestones字段
+                if "goal" in plan_data and "milestones" in plan_data:
+                    print(f"\n📊 检测到planning格式，正在存储到数据库...")
+                    
+                    # 存储到数据库
+                    session = SessionLocal()
+                    try:
+                        goal_repo = GoalRepository(session)
+                        
+                        goal_info = plan_data["goal"]
+                        milestones_data = plan_data["milestones"]
+                        
+                        # 转换milestones格式
+                        milestones_payload = []
+                        for milestone in milestones_data:
+                            tasks = milestone.get("tasks", [])
+                            milestone_payload = {
+                                "title": milestone.get("title"),
+                                "target_date": milestone.get("target_date"),
+                                "definition_of_done": milestone.get("definition_of_done"),
+                                "order": milestone.get("order"),
+                                "status": "not-started",
+                                "tasks": [
+                                    {
+                                        "title": task.get("title"),
+                                        "due_date": task.get("due_date"),
+                                        "priority": task.get("priority", "medium"),
+                                        "estimated_time": task.get("estimated_time", 1.0),
+                                    }
+                                    for task in tasks
+                                ]
+                            }
+                            milestones_payload.append(milestone_payload)
+                        
+                        # 创建goal
+                        goal = goal_repo.create_goal(
+                            memory_id=request.thread_id,
+                            title=goal_info.get("title"),
+                            type=goal_info.get("type", "General"),
+                            deadline=goal_info.get("deadline"),
+                            status="not-started",
+                            milestones=milestones_payload
+                        )
+                        session.commit()
+                        
+                        print(f"✅ Goal已存储: {goal.title} (ID: {goal.id})")
+                        print(f"   包含 {len(milestones_payload)} 个milestones")
+                        
+                    except Exception as e:
+                        print(f"⚠️ 存储goal失败: {e}")
+                        session.rollback()
+                    finally:
+                        session.close()
+        
+        except (json.JSONDecodeError, KeyError) as e:
+            # 不是planning格式的响应，正常处理
+            print(f"💬 普通聊天响应（非planning格式）")
+            pass
 
         return ChatResponse(
             content=content,

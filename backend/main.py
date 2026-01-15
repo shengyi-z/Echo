@@ -11,7 +11,7 @@ load_dotenv(dotenv_path=env_path)
 # Debug: Check if API key is loaded
 api_key = os.getenv("BACKBOARD_API_KEY")
 
-from .api import chat, goals, plans, tasks
+from .api import chat, goals, plans, tasks, dashboard
 
 # App instance and global middleware.
 app = FastAPI(title="Echo API")
@@ -30,6 +30,7 @@ app.include_router(chat.router)
 app.include_router(goals.router)
 app.include_router(plans.router)
 app.include_router(tasks.router)
+app.include_router(dashboard.router)
 
 # Basic health check.
 

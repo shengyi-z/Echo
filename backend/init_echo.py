@@ -154,6 +154,7 @@ def send_message(thread_id: str, user_input: str):
         "memory": "Auto",      # 开启自动记忆
         "web_search": "Auto",  # 开启联网搜索
         "stream": False        # 布尔值，不是字符串
+        # 使用默认的 openai/gpt-4o
     }
     
     print(f"🔍 发送的payload: {payload}")
