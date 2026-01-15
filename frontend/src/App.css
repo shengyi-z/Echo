@@ -1236,3 +1236,95 @@
     padding-top: 12px;
     page-break-before: always;
   }
+
+/* ==================== Chat Split View ==================== */
+
+/* Chat container - holds header and content */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Chat content - holds chat-main and plan-panel side by side */
+.chat-content {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.chat-content.split-view {
+  gap: 1px;
+}
+
+/* Main chat area - contains chat-scroll and chat-input */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+/* Plan panel - shown when split view is active */
+.plan-panel {
+  width: clamp(320px, 35vw, 480px);
+  border-left: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header actions for plan toggle */
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Adjust chat-scroll for split view */
+.chat-content.split-view .chat-scroll {
+  height: 100%;
+}
+
+/* Mobile responsive */
+@media (max-width: 1024px) {
+  .plan-panel {
+    width: 40vw;
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-content.split-view {
+    flex-direction: column;
+  }
+  
+  .plan-panel {
+    width: 100%;
+    height: 40vh;
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
+  }
+}
+
+@media (max-width: 640px) {
+  /* On mobile, hide plan panel by default or make it a modal */
+  .plan-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    height: 100vh;
+    z-index: 1000;
+    transition: right 0.3s ease;
+    border-left: none;
+  }
+  
+  .chat-content.split-view .plan-panel {
+    right: 0;
+  }
+}
