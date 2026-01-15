@@ -446,7 +446,7 @@ function App() {
         onToggleMenu={() => setIsSidebarOpen((prev) => !prev)}
       />
 
-      <main className="chat-panel">
+      <main className={`chat-panel ${activeView !== 'chat' ? 'panel-scroll' : ''}`}>
         {activeView === 'dashboard' ? (
           <Dashboard
             onBack={() => setActiveView('chat')}

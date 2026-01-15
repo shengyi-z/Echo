@@ -303,6 +303,10 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 239, 230, 0.92));
 }
 
+.chat-panel.panel-scroll {
+  overflow-y: auto;
+}
+
 .chat-header {
   display: flex;
   align-items: center;
