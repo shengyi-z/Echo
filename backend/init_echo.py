@@ -89,22 +89,39 @@ def send_message(thread_id: str, user_input: str):
         raise ValueError("BACKBOARD_API_KEY not found")
     
     headers = {"X-API-Key": api_key}
+    # API expects multipart/form-data, not JSON
     payload = {
         "content": user_input,
         "memory": "Auto",      # 开启自动记忆
         "web_search": "Auto",  # 开启联网搜索
-        "stream": "false"
+        "stream": False        # 布尔值，不是字符串
     }
     
+    print(f"🔍 发送的payload: {payload}")
+    print(f"🔍 URL: {BASE_URL}/threads/{thread_id}/messages")
+    
     try:
+        # 使用 data= 发送 form data，不是 json=
         response = requests.post(
             f"{BASE_URL}/threads/{thread_id}/messages",
             data=payload,
             headers=headers
         )
+        print(f"🔍 响应状态码: {response.status_code}")
+        print(f"🔍 响应内容: {response.text[:500]}")
         response.raise_for_status()
-        content = response.json().get("content")
+        data = response.json()
+        
+        # 根据API响应schema，content在返回的对象中
+        content = data.get("content")
+        if not content:
+            # 如果content为空，尝试获取message字段
+            content = data.get("message", "")
+        
         return content
+    except requests.exceptions.HTTPError as e:
+        error_detail = e.response.text if hasattr(e.response, 'text') else str(e)
+        raise Exception(f"Backboard API error: {e.response.status_code} - {error_detail}")
     except Exception as e:
         raise Exception(f"发送消息失败: {e}")
 

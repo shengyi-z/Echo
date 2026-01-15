@@ -129,7 +129,10 @@ async def send_chat_message(request: ChatRequest):
 
     try:
         # 发送消息，自动开启记忆和搜索
+        print(f"📤 发送消息到 thread_id: {request.thread_id}")
+        print(f"📝 消息内容: {request.message}")
         content = send_message(request.thread_id, request.message)
+        print(f"✅ 收到回复: {content[:100] if content else 'None'}...")
 
         suggested_title = None
 
@@ -144,6 +147,9 @@ async def send_chat_message(request: ChatRequest):
             suggested_title=suggested_title
         )
     except Exception as e:
+        print(f"❌ 错误详情: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"发送消息失败: {str(e)}")
 
 # Update stored chat title (frontend-only for now).

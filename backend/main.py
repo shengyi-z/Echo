@@ -1,5 +1,15 @@
+import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+# Load environment variables from backend/.env
+env_path = Path(__file__).parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
+# Debug: Check if API key is loaded
+api_key = os.getenv("BACKBOARD_API_KEY")
 
 from .api import chat, goals, plans, tasks
 
