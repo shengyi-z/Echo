@@ -4,7 +4,7 @@ Chat API - Handle user messages and communicate with Backboard AI
 import os
 import json
 import re
-from typing import Optional
+from typing import Optional, Any, Dict, Tuple
 
 import requests
 from fastapi import APIRouter, HTTPException
@@ -18,15 +18,15 @@ from ..repo.goal_repo import GoalRepository
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 BASE_URL = "https://app.backboard.io/api"
 
-# Request payload for sending a user message.
 
+# =========================
+# Pydantic Models
+# =========================
 
 class ChatRequest(BaseModel):
     message: str
     thread_id: str
     is_first_message: Optional[bool] = False
-
-# Response payload for a chat reply.
 
 
 class ChatResponse(BaseModel):
@@ -35,21 +35,15 @@ class ChatResponse(BaseModel):
     role: str = "assistant"
     suggested_title: Optional[str] = None
 
-# Response payload for init endpoint.
-
 
 class InitResponse(BaseModel):
     assistant_id: str
     thread_id: str
     message: str
 
-# Request payload for creating a new chat.
-
 
 class NewChatRequest(BaseModel):
     title: Optional[str] = None
-
-# Response payload for new chat creation.
 
 
 class NewChatResponse(BaseModel):
@@ -57,14 +51,10 @@ class NewChatResponse(BaseModel):
     title: str
     created_at: str
 
-# Request payload for updating chat titles.
-
 
 class UpdateTitleRequest(BaseModel):
     thread_id: str
     title: str
-
-# Response payload for updating chat titles.
 
 
 class UpdateTitleResponse(BaseModel):
@@ -72,8 +62,197 @@ class UpdateTitleResponse(BaseModel):
     thread_id: str
     title: str
 
-# Ensure assistant exists and create a new thread.
 
+# ============================================================
+# ✅ C：用于“结构化 JSON 稳定提取 + 修复重试 + 类型归一化”的工具函数
+# ============================================================
+
+def _looks_like_plan_text(text: str) -> bool:
+    """
+    判断文本是否“像 planning JSON 输出”
+    用于：解析失败时决定要不要自动重试一次
+    """
+    if not text:
+        return False
+    t = text.lower()
+    keywords = [
+        "```json",
+        "milestones",
+        "definition_of_done",
+        "response_to_user",
+        "goal_title",
+        "resources",
+        "insights",
+        "\"goal\"",
+    ]
+    return any(k in t for k in keywords)
+
+
+def _extract_json_from_fence(text: str) -> Optional[str]:
+    """
+    优先提取 ```json ... ``` 内的内容
+    """
+    if not text:
+        return None
+    m = re.search(r"```json\s*([\s\S]*?)\s*```", text, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
+def _extract_first_json_object(text: str) -> Optional[str]:
+    """
+    从全文中提取第一个“完整 JSON 对象”（用括号配对计数）
+    解决：模型没用 ```json fence 或夹杂多余文本导致 parse 失败
+    """
+    if not text:
+        return None
+
+    s = text
+    start = s.find("{")
+    if start == -1:
+        return None
+
+    in_string = False
+    escape = False
+    depth = 0
+
+    for i in range(start, len(s)):
+        ch = s[i]
+
+        if escape:
+            escape = False
+            continue
+
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+
+        if ch == '"':
+            in_string = not in_string
+            continue
+
+        if not in_string:
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return s[start:i + 1].strip()
+
+    # 没闭合：通常是模型输出被截断
+    return None
+
+
+def _try_parse_plan_json(content: str) -> Tuple[bool, Optional[Dict[str, Any]], str]:
+    """
+    尝试从 content 中解析出 plan JSON
+    返回：(ok, parsed_dict_or_none, reason)
+    """
+    if not content:
+        return False, None, "empty_content"
+
+    # 1) 先从 fence 里拿
+    candidate = _extract_json_from_fence(content)
+    if candidate:
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                # 只要具备 planning 的核心字段即可
+                if "milestones" in parsed and "response_to_user" in parsed:
+                    return True, parsed, "parsed_from_fence"
+        except Exception:
+            pass
+
+    # 2) 再尝试从全文提取第一个完整 JSON 对象
+    candidate = _extract_first_json_object(content)
+    if candidate:
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                if "milestones" in parsed and "response_to_user" in parsed:
+                    return True, parsed, "parsed_from_text_object"
+        except Exception:
+            return False, None, "json_parse_failed"
+
+    return False, None, "no_json_found_or_incomplete"
+
+
+def _to_float_hours(value: Any) -> Optional[float]:
+    """
+    把 "8 hours" / "8h" / "2.5" / 8 等统一转 float
+    避免你前端/DB 因类型不一致崩掉
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        m = re.search(r"(\d+(\.\d+)?)", value)
+        if m:
+            return float(m.group(1))
+    return None
+
+
+def _normalize_plan_types(plan: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    ✅ 把 plan JSON 里容易出问题的字段做“最小纠正”
+    - estimated_time: 强制 float
+    - priority: 非法值兜底为 medium
+    """
+    if not isinstance(plan, dict):
+        return plan
+
+    milestones = plan.get("milestones", [])
+    if isinstance(milestones, list):
+        for ms in milestones:
+            if not isinstance(ms, dict):
+                continue
+            tasks = ms.get("tasks", [])
+            if isinstance(tasks, list):
+                for task in tasks:
+                    if not isinstance(task, dict):
+                        continue
+                    task["estimated_time"] = _to_float_hours(task.get("estimated_time")) or 0.0
+                    if task.get("priority") not in ("high", "medium", "low"):
+                        task["priority"] = "medium"
+    return plan
+
+
+def _repair_prompt_v1() -> str:
+    """
+    第一次修复：要求严格 JSON + 修正 estimated_time 类型
+    """
+    return (
+        "Your previous output is NOT valid/complete JSON (likely truncated or invalid).\n"
+        "Re-output ONE valid JSON object ONLY (you may wrap with a single ```json fence). NO extra text.\n"
+        "Include ALL required fields exactly: response_to_user, goal_title, milestones, insights, resources.\n"
+        "IMPORTANT:\n"
+        "- estimated_time must be a NUMBER (float hours), e.g. 8 or 2.5 (NOT '8 hours').\n"
+        "- Keep it concise to avoid truncation.\n"
+        "Now output the corrected JSON.\n"
+    )
+
+
+def _repair_prompt_v2_minimal() -> str:
+    """
+    第二次修复：要求“更短”的最小 JSON，避免再次被截断
+    """
+    return (
+        "Still not parseable JSON.\n"
+        "Now output a MINIMAL valid JSON object ONLY (you may wrap in ```json).\n"
+        "Rules:\n"
+        "- 3 milestones ONLY.\n"
+        "- First 2 milestones: 5 tasks each.\n"
+        "- Third milestone: 2 tasks.\n"
+        "- resources: 3 items ONLY.\n"
+        "- insights must be concise.\n"
+        "- estimated_time must be NUMBER (float).\n"
+        "Output JSON only, nothing else.\n"
+    )
+
+
+# =========================
+# Routes
+# =========================
 
 @router.post("/init", response_model=InitResponse)
 async def initialize_user():
@@ -95,8 +274,6 @@ async def initialize_user():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
 
-# Create a new chat thread.
-
 
 @router.post("/new", response_model=NewChatResponse)
 async def create_new_chat(request: NewChatRequest):
@@ -108,7 +285,6 @@ async def create_new_chat(request: NewChatRequest):
         thread_id = await create_thread(assistant_id)
 
         from datetime import datetime
-
         title = request.title if request.title else "New Chat"
 
         return NewChatResponse(
@@ -122,14 +298,17 @@ async def create_new_chat(request: NewChatRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"创建新对话失败: {str(e)}")
 
-# Send user message and return AI reply.
-
 
 @router.post("/send", response_model=ChatResponse)
 async def send_chat_message(request: ChatRequest):
     """
     发送用户消息到 Backboard AI 并返回回复
     如果是第一条消息，会根据内容生成建议的标题
+
+    ✅ 关键增强：
+    - 更稳的 JSON 提取（支持 fence + 括号配对）
+    - 自动修复重试（最多 2 次）
+    - estimated_time 类型归一化（"8 hours" -> 8.0）
     """
     if not request.thread_id:
         raise HTTPException(
@@ -138,109 +317,142 @@ async def send_chat_message(request: ChatRequest):
         )
 
     try:
-        
-        # 发送消息，自动开启记忆和搜索
+        # -------------------------
+        # 1) 发送消息
+        # -------------------------
         print(f"\n📤 发送消息到 thread_id: {request.thread_id}")
         print(f"📝 用户消息: {request.message}")
-        print("="*80)
+        print("=" * 80)
+
         content = await send_message(request.thread_id, request.message)
+
         print(f"\n🤖 AI 完整响应:\n{content}")
-        print("="*80)
+        print("=" * 80)
 
+        # -------------------------
+        # 2) 首条消息：生成标题（保留你原逻辑）
+        # -------------------------
         suggested_title = None
-
-        # 如果是第一条消息，使用 AI 生成标题
         if request.is_first_message:
             suggested_title = await generate_chat_title_with_ai(request.message)
-        
-        # 检查AI响应是否包含planning格式的JSON
-        try:
-            # 提取JSON（可能被markdown包裹）
-            json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-            else:
-                json_match = re.search(r'\{.*"goal".*"milestones".*\}', content, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group(0)
+
+        # -------------------------
+        # 3) 尝试解析 planning JSON（新增稳提取 + 自动修复）
+        # -------------------------
+        plan_data: Optional[Dict[str, Any]] = None
+        ok, parsed, reason = _try_parse_plan_json(content)
+        print(f"🔎 Plan JSON parse #1: ok={ok}, reason={reason}")
+
+        if ok and isinstance(parsed, dict):
+            plan_data = parsed
+        else:
+            # ✅ 如果看起来像 plan，但 JSON 不可解析，自动要求重输出一次（v1）
+            if _looks_like_plan_text(content):
+                print("♻️ 检测到疑似计划输出但 JSON 不可解析，自动重试 #2 (repair v1)...")
+                content2 = await send_message(request.thread_id, _repair_prompt_v1())
+                ok2, parsed2, reason2 = _try_parse_plan_json(content2)
+                print(f"🔧 Plan JSON parse #2: ok={ok2}, reason={reason2}")
+                if ok2 and isinstance(parsed2, dict):
+                    content = content2
+                    plan_data = parsed2
                 else:
-                    json_str = None
-            
-            if json_str:
-                plan_data = json.loads(json_str)
-                
-                # 检查是否包含goal和milestones字段
-                if "goal" in plan_data:
-                    print(f"\n📊 检测到planning格式，正在存储到数据库...")
-                    
-                    # 存储到数据库
-                    session = SessionLocal()
-                    try:
-                        goal_repo = GoalRepository(session)
-                        
-                        goal_info = plan_data["goal"]
-                        milestones_data = plan_data.get("milestones", [])
-                        
-                        # 转换milestones格式
-                        milestones_payload = []
-                        for milestone in milestones_data:
-                            tasks = milestone.get("tasks", [])
-                            milestone_payload = {
-                                "title": milestone.get("title"),
-                                "target_date": milestone.get("target_date"),
-                                "definition_of_done": milestone.get("definition_of_done"),
-                                "order": milestone.get("order"),
-                                "status": "not-started",
-                                "tasks": [
-                                    {
-                                        "title": task.get("title"),
-                                        "due_date": task.get("due_date"),
-                                        "priority": task.get("priority", "medium"),
-                                        "estimated_time": task.get("estimated_time", 1.0),
-                                    }
-                                    for task in tasks
-                                ]
-                            }
-                            milestones_payload.append(milestone_payload)
-                        
-                        # 创建goal
-                        goal = goal_repo.create_goal(
-                            memory_id=request.thread_id,
-                            title=goal_info.get("title"),
-                            type=goal_info.get("type", "General"),
-                            deadline=goal_info.get("deadline"),
-                            status="not-started",
-                            milestones=milestones_payload
-                        )
-                        session.commit()
-                        
-                        print(f"✅ Goal已存储: {goal.title} (ID: {goal.id})")
-                        print(f"   包含 {len(milestones_payload)} 个milestones")
-                        
-                    except Exception as e:
-                        print(f"⚠️ 存储goal失败: {e}")
-                        session.rollback()
-                    finally:
-                        session.close()
-        
-        except (json.JSONDecodeError, KeyError) as e:
-            # 不是planning格式的响应，正常处理
-            print(f"💬 普通聊天响应（非planning格式）")
+                    # ✅ 第二次还失败：再要求输出“更短的最小 JSON”（v2）
+                    print("♻️ 仍不可解析，自动重试 #3 (repair v2 minimal)...")
+                    content3 = await send_message(request.thread_id, _repair_prompt_v2_minimal())
+                    ok3, parsed3, reason3 = _try_parse_plan_json(content3)
+                    print(f"🔧 Plan JSON parse #3: ok={ok3}, reason={reason3}")
+                    if ok3 and isinstance(parsed3, dict):
+                        content = content3
+                        plan_data = parsed3
+
+        # -------------------------
+        # 4) 如果解析成功：做类型归一化，并把“干净 JSON”回写给前端
+        #    （这样前端存 localStorage 时就不会存到坏类型）
+        # -------------------------
+        if plan_data is not None:
+            plan_data = _normalize_plan_types(plan_data)
+
+            # ✅ 回写为标准 JSON fence（前端 regex/parse 更稳定）
+            # 说明：即使模型原来没有 fence，这里也会统一包装一次，减少前端分支
+            content = "```json\n" + json.dumps(plan_data, ensure_ascii=False, indent=2) + "\n```"
+
+        # -------------------------
+        # 5) DB 存储（保留你原逻辑：只存旧 schema 的 goal）
+        #    你当前 DB create_goal() deadline 是必填 date，所以不能乱存
+        # -------------------------
+        try:
+            if plan_data and isinstance(plan_data, dict) and "goal" in plan_data:
+                print(f"\n📊 检测到 planning(旧schema: goal) 格式，正在存储到数据库...")
+
+                session = SessionLocal()
+                try:
+                    goal_repo = GoalRepository(session)
+
+                    goal_info = plan_data["goal"]
+                    milestones_data = plan_data.get("milestones", [])
+
+                    # 转换 milestones 格式
+                    milestones_payload = []
+                    for milestone in milestones_data:
+                        tasks = milestone.get("tasks", []) if isinstance(milestone, dict) else []
+                        milestone_payload = {
+                            "title": milestone.get("title") if isinstance(milestone, dict) else None,
+                            "target_date": milestone.get("target_date") if isinstance(milestone, dict) else None,
+                            "definition_of_done": milestone.get("definition_of_done") if isinstance(milestone, dict) else None,
+                            "order": milestone.get("order") if isinstance(milestone, dict) else None,
+                            "status": "not-started",
+                            "tasks": [
+                                {
+                                    "title": task.get("title"),
+                                    "due_date": task.get("due_date"),
+                                    "priority": task.get("priority", "medium"),
+                                    "estimated_time": task.get("estimated_time", 1.0),
+                                }
+                                for task in tasks if isinstance(task, dict)
+                            ]
+                        }
+                        milestones_payload.append(milestone_payload)
+
+                    # 创建 goal（注意：deadline 必须存在，否则 create_goal 会报错）
+                    goal = goal_repo.create_goal(
+                        memory_id=request.thread_id,
+                        title=goal_info.get("title"),
+                        type=goal_info.get("type", "General"),
+                        deadline=goal_info.get("deadline"),
+                        status="not-started",
+                        milestones=milestones_payload
+                    )
+                    session.commit()
+
+                    print(f"✅ Goal已存储: {goal.title} (ID: {goal.id})")
+                    print(f"   包含 {len(milestones_payload)} 个 milestones")
+
+                except Exception as e:
+                    print(f"⚠️ 存储goal失败: {e}")
+                    session.rollback()
+                finally:
+                    session.close()
+
+        except Exception:
+            # 任何 DB 存储异常都不影响 chat 返回
+            print("💬 普通聊天响应（或新schema未入库），继续返回给前端。")
             pass
 
+        # -------------------------
+        # 6) 返回给前端
+        # -------------------------
         return ChatResponse(
             content=content,
             thread_id=request.thread_id,
             role="assistant",
             suggested_title=suggested_title
         )
+
     except Exception as e:
         print(f"❌ 错误详情: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"发送消息失败: {str(e)}")
-
-# Update stored chat title (frontend-only for now).
 
 
 @router.post("/update-title", response_model=UpdateTitleResponse)
@@ -257,8 +469,10 @@ async def update_chat_title(request: UpdateTitleRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"更新标题失败: {str(e)}")
 
-# Use AI to generate a short title from the first user message.
 
+# ============================================================
+# ✅ 你原本的“AI 自动生成标题”逻辑（保留不改）
+# ============================================================
 
 async def generate_chat_title_with_ai(user_message: str) -> str:
     """
@@ -317,8 +531,6 @@ Reply with ONLY the title, nothing else."""
     except Exception as e:
         print(f"AI title generation failed: {e}")
         return generate_simple_title(user_message)
-
-# Fallback: simple title generation when AI fails.
 
 
 def generate_simple_title(user_message: str) -> str:
