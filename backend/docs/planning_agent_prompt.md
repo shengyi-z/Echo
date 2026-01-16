@@ -59,42 +59,46 @@ To avoid the model output being truncated (which breaks JSON parsing):
 
 ## JSON Schema
 
-Follow this schema exactly—no renaming, removing, or adding fields.
+Return ONLY a valid JSON object wrapped in ```json code fence with these exact fields:
 
-```json
-{
-  "response_to_user": "Warm, encouraging 2-4 sentence summary",
-  "goal_title": "Concise goal title (e.g., 'Learn React in 3 Months')",
-  "milestones": [
-    {
-      "title": "Milestone with time context (e.g., 'Weeks 1-3: Foundation')",
-      "target_date": "YYYY-MM-DD",
-      "definition_of_done": "Specific, measurable completion criteria",
-      "order": 1,
-      "tasks": [
-        {
-          "title": "Specific, actionable task",
-          "due_date": "YYYY-MM-DD",
-          "priority": "high|medium|low",
-          "estimated_time": 2.5
-        }
-      ]
-    }
-  ],
-  
-  "insights": {
-    "overview": "1-2 paragraph plan strategy summary",
-    "key_points": ["Critical insight 1", "Critical insight 2", "Critical insight 3"],
-    "progression_guidelines": "Detailed progress expectations by phase with time ranges",
-    "scientific_basis": "Evidence-based principles, standards, or research cited",
-    "adjustments": "Practical modification options if too easy/hard or timeline changes"
-  },
-  
-  "resources": [
-    {
-      "title": "Resource title",
-      "url": "https://...",
-      "category": "app|course|article|video|tool|book|community"
-    }
-  ]
-}
+- response_to_user: string (2-4 sentence warm summary)
+- goal_title: string (concise goal title, e.g., "Learn React in 3 Months")
+- milestones: array of objects, each containing:
+  - title: string (with time context, e.g., "Weeks 1-3: Foundation")
+  - target_date: string (YYYY-MM-DD format)
+  - definition_of_done: string (specific completion criteria)
+  - order: number (1, 2, 3...)
+  - tasks: array of objects, each containing:
+    - title: string (specific actionable task)
+    - due_date: string (YYYY-MM-DD, must be <= milestone target_date)
+    - priority: string (exactly "high", "medium", or "low")
+    - estimated_time: number (hours as decimal, e.g., 2.5)
+- insights: object containing:
+  - overview: string (1-2 paragraph strategy summary)
+  - key_points: array of strings (2-4 critical insights)
+  - progression_guidelines: string (detailed progress expectations by phase)
+  - scientific_basis: string (evidence-based principles or research)
+  - adjustments: string (modification options if too easy/hard or timeline changes)
+- resources: array of objects (4-8 items), each containing:
+  - title: string (resource name)
+  - url: string (complete URL with https://)
+  - category: string (one of: app, course, article, video, tool, book, community)
+
+## Tools Available
+- **get_current_date**: Call this to get today's date for accurate timeline calculations
+
+## Before Submitting - Verify:
+- Valid JSON syntax (no trailing commas, proper quotes)
+- All dates >= today, <= goal deadline
+- Milestones in chronological order (order: 1, 2, 3...)
+- Tasks within milestone dates
+- Realistic timeline (use web search if uncertain)
+- Specific, actionable tasks
+- Complete URLs with https://
+- Total task hours align with constraints
+- estimated_time as numbers (not strings)
+- Response is ONLY the JSON (no extra commentary)
+
+**Output must be ONLY the JSON wrapped in ```json code fence. No other text.**
+
+Your goal: Create a plan that genuinely helps the user succeed.
