@@ -480,9 +480,48 @@
   gap: 16px;
 }
 
+.dashboard-title-section {
+  flex: 1;
+}
+
+.dashboard-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
 .dashboard-header h1 {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: clamp(1.5rem, 2.2vw, 2rem);
+}
+
+.plan-selector {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  max-width: 300px;
+}
+
+.plan-selector:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-primary);
+}
+
+.plan-selector:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.plan-selector option {
+  padding: 8px;
 }
 
 .dashboard-header p {
