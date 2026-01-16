@@ -16,7 +16,8 @@ from .chat_service import ChatService
 # Load the planning agent prompt template
 def load_planning_prompt_template():
     """Load the planning agent instruction document"""
-    prompt_path = Path(__file__).parent.parent / "docs" / "planning_agent_prompt.md"
+    prompt_path = Path(__file__).parent.parent / \
+        "docs" / "planning_agent_prompt.md"
     try:
         with open(prompt_path, 'r', encoding='utf-8') as f:
             return f.read()
@@ -85,6 +86,24 @@ class PlanningService:
             raise ValueError("failed to load stored plan")
 
         # Map stored entities into response schemas.
+        # Build tasks indexed by milestone for nesting
+        tasks_by_milestone = {}
+        for task in stored_goal.tasks:
+            milestone_id = str(task.milestone_id)
+            if milestone_id not in tasks_by_milestone:
+                tasks_by_milestone[milestone_id] = []
+            tasks_by_milestone[milestone_id].append(
+                PlanTask(
+                    id=str(task.id),
+                    title=task.title,
+                    due_date=task.due_date,
+                    milestone_id=milestone_id,
+                    priority=task.priority,
+                    estimated_time=task.estimated_time,
+                )
+            )
+
+        # Create milestones with nested tasks
         milestones = [
             PlanMilestone(
                 id=str(milestone.id),
@@ -92,20 +111,11 @@ class PlanningService:
                 target_date=milestone.target_date,
                 definition_of_done=milestone.definition_of_done,
                 order=milestone.order,
+                tasks=tasks_by_milestone.get(str(milestone.id), []),
             )
             for milestone in stored_goal.milestones
         ]
-        tasks = [
-            PlanTask(
-                id=str(task.id),
-                title=task.title,
-                due_date=task.due_date,
-                milestone_id=str(task.milestone_id),
-                priority=task.priority,
-                estimated_time=task.estimated_time,
-            )
-            for task in stored_goal.tasks
-        ]
+        tasks = []
 
         # Parse insights and resources from AI response
         if ai_response:
@@ -140,7 +150,7 @@ class PlanningService:
 
         # Load the planning prompt template
         template = load_planning_prompt_template()
-        
+
         if template:
             # Fill in the template variables
             # Note: The template uses these as examples, not actual template strings
@@ -162,7 +172,7 @@ class PlanningService:
 Please generate a complete, structured plan following all the rules and format specifications above.
 """
             return filled_prompt
-        
+
         # Fallback to simplified prompt if template loading fails
         prompt = f"""
 I need you to help me create a **detailed, executable plan with a clear timeline** to achieve the following goal:

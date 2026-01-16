@@ -45,6 +45,7 @@ class PlanMilestone(BaseModel):
     target_date: date
     definition_of_done: str
     order: int
+    tasks: List['PlanTask'] = Field(default_factory=list)
 
 
 # Task output from the planning engine.
