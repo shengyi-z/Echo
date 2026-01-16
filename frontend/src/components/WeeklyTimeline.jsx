@@ -1,5 +1,27 @@
 // Weekly milestones timeline.
-function WeeklyTimeline() {
+function WeeklyTimeline({ milestones }) {
+  if (!milestones || milestones.length === 0) {
+    return (
+      <article className="dash-card">
+        <header className="dash-card-header">
+          <h2>Key milestones</h2>
+          <span className="pill ghost">Timeline</span>
+        </header>
+        <p className="dash-card-subtitle">No milestones yet. Create a plan to see your timeline!</p>
+      </article>
+    )
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'TBD'
+    const date = new Date(dateString)
+    const options = { weekday: 'short', month: 'short', day: 'numeric' }
+    return date.toLocaleDateString('en-US', options)
+  }
+
+  // Show first 3 milestones
+  const displayMilestones = milestones.slice(0, 3)
+
   return (
     <article className="dash-card">
       <header className="dash-card-header">
@@ -7,27 +29,17 @@ function WeeklyTimeline() {
         <span className="pill ghost">Timeline</span>
       </header>
       <div className="timeline">
-        <div className="timeline-row">
-          <span className="timeline-date">Mon</span>
-          <div>
-            <p className="timeline-title">Finish mock test</p>
-            <p className="timeline-note">Target score: 90+</p>
+        {displayMilestones.map((milestone, index) => (
+          <div key={milestone.id || index} className="timeline-row">
+            <span className="timeline-date">{formatDate(milestone.target_date)}</span>
+            <div>
+              <p className="timeline-title">{milestone.title || 'Untitled Milestone'}</p>
+              {milestone.definition_of_done && (
+                <p className="timeline-note">{milestone.definition_of_done}</p>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="timeline-row">
-          <span className="timeline-date">Wed</span>
-          <div>
-            <p className="timeline-title">Submit application packet</p>
-            <p className="timeline-note">ID + medical proof</p>
-          </div>
-        </div>
-        <div className="timeline-row">
-          <span className="timeline-date">Fri</span>
-          <div>
-            <p className="timeline-title">Book driving practice</p>
-            <p className="timeline-note">After 7:00 PM</p>
-          </div>
-        </div>
+        ))}
       </div>
     </article>
   )

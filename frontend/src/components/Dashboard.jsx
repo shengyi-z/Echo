@@ -154,7 +154,8 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
     return {
       active_goal: activeGoal,
       today_tasks: todayTasks,
-      risk_alerts: riskAlerts
+      risk_alerts: riskAlerts,
+      milestones: plan.milestones || []
     }
   }
 
@@ -232,7 +233,7 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
       <section className="dashboard-grid">
         <GoalCard data={dashboardData?.active_goal} />
         <TodayTasks tasks={dashboardData?.today_tasks || []} />
-        <WeeklyTimeline />
+        <WeeklyTimeline milestones={dashboardData?.milestones || []} />
         <RiskAlerts alerts={dashboardData?.risk_alerts || []} />
       </section>
 
