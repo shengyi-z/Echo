@@ -10,6 +10,8 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [confirmedPlans, setConfirmedPlans] = useState([]) // All confirmed plans
+  const [selectedThreadId, setSelectedThreadId] = useState(null) // Currently selected plan
 
   useEffect(() => {
     loadDashboardData()
@@ -38,17 +40,19 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
           today_tasks: [],
           risk_alerts: []
         })
+        setConfirmedPlans([])
+        setSelectedThreadId(null)
         setError(null)
         setLoading(false)
         return
       }
       
       // Filter only confirmed plans
-      const confirmedPlans = planEntries.filter(([threadId]) => {
+      const confirmedPlansList = planEntries.filter(([threadId]) => {
         return localStorage.getItem(`plan-confirmed-${threadId}`) === 'true'
       })
       
-      if (confirmedPlans.length === 0) {
+      if (confirmedPlansList.length === 0) {
         setDashboardData({
           active_goal: null,
           today_tasks: [],
@@ -57,23 +61,42 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
             severity: 'low'
           }]
         })
+        setConfirmedPlans([])
+        setSelectedThreadId(null)
         setError(null)
         setLoading(false)
         return
       }
       
-      // Use the most recently updated confirmed plan as active goal
-      const sortedPlans = confirmedPlans.sort((a, b) => {
+      // Sort by most recent
+      const sortedPlans = confirmedPlansList.sort((a, b) => {
         const dateA = new Date(a[1].updatedAt || 0)
         const dateB = new Date(b[1].updatedAt || 0)
         return dateB - dateA
       })
       
-      const [threadId, plan] = sortedPlans[0]
+      // Save all confirmed plans
+      setConfirmedPlans(sortedPlans)
       
-      // Transform plan data to dashboard format
-      const transformedData = transformPlanToDashboard(plan, threadId)
-      setDashboardData(transformedData)
+      // Select the most recent plan if no plan is currently selected
+      // or if the selected plan is no longer confirmed
+      const currentSelection = selectedThreadId
+      const stillExists = sortedPlans.find(([id]) => id === currentSelection)
+      
+      const threadIdToDisplay = (currentSelection && stillExists) 
+        ? currentSelection 
+        : sortedPlans[0][0]
+      
+      setSelectedThreadId(threadIdToDisplay)
+      
+      // Find the selected plan
+      const selectedPlan = sortedPlans.find(([id]) => id === threadIdToDisplay)
+      if (selectedPlan) {
+        const [threadId, plan] = selectedPlan
+        const transformedData = transformPlanToDashboard(plan, threadId)
+        setDashboardData(transformedData)
+      }
+      
       setError(null)
       
     } catch (err) {
@@ -81,6 +104,20 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  // Handle plan selection change
+  const handlePlanChange = (event) => {
+    const newThreadId = event.target.value
+    setSelectedThreadId(newThreadId)
+    
+    // Find and display the selected plan
+    const selectedPlan = confirmedPlans.find(([id]) => id === newThreadId)
+    if (selectedPlan) {
+      const [threadId, plan] = selectedPlan
+      const transformedData = transformPlanToDashboard(plan, threadId)
+      setDashboardData(transformedData)
     }
   }
   
@@ -224,8 +261,24 @@ function Dashboard({ onBack, showMenuButton, onToggleMenu }) {
             </button>
           )}
         </div>
-        <div>
-          <h1>Dashboard</h1>
+        <div className="dashboard-title-section">
+          <div className="dashboard-title-row">
+            <h1>Dashboard</h1>
+            {confirmedPlans.length > 1 && (
+              <select 
+                className="plan-selector"
+                value={selectedThreadId || ''}
+                onChange={handlePlanChange}
+                aria-label="Select plan"
+              >
+                {confirmedPlans.map(([threadId, plan]) => (
+                  <option key={threadId} value={threadId}>
+                    {plan.goal_title || 'Untitled Plan'}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <p>Stay on top of what matters this week.</p>
         </div>
       </header>
