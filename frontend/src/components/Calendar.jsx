@@ -1,22 +1,70 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { getAllPlans } from '../utils/planStorage'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const EVENTS = [
-  { date: '2026-01-06', title: 'Milestone: Research sprint' },
-  { date: '2026-01-12', title: 'Review: Weekly sync' },
-  { date: '2026-01-18', title: 'Milestone: Prototype ready' },
-  { date: '2026-01-24', title: 'Launch prep checklist' },
-]
 
 // 日历页面：支持月/年视图与跨年跳转。
 function Calendar({ onBack, showMenuButton, onToggleMenu }) {
   const [viewMode, setViewMode] = useState('month')
   const [selectedYear, setSelectedYear] = useState(2026)
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0)
+  const [events, setEvents] = useState([])
+
+  // Load milestones from confirmed plans
+  useEffect(() => {
+    loadMilestones()
+    
+    // Listen for plan updates
+    const handlePlanUpdate = () => {
+      console.log('📅 Calendar: Plan updated, reloading milestones')
+      loadMilestones()
+    }
+    
+    window.addEventListener('planUpdated', handlePlanUpdate)
+    return () => window.removeEventListener('planUpdated', handlePlanUpdate)
+  }, [])
+
+  const loadMilestones = () => {
+    try {
+      const allPlans = getAllPlans()
+      const planEntries = Object.entries(allPlans)
+      
+      // Filter only confirmed plans
+      const confirmedPlans = planEntries.filter(([threadId]) => {
+        return localStorage.getItem(`plan-confirmed-${threadId}`) === 'true'
+      })
+      
+      // Extract all milestones from confirmed plans
+      const milestoneEvents = []
+      confirmedPlans.forEach(([threadId, plan]) => {
+        if (plan.milestones && Array.isArray(plan.milestones)) {
+          plan.milestones.forEach(milestone => {
+            if (milestone.target_date) {
+              milestoneEvents.push({
+                date: milestone.target_date,
+                title: milestone.title || 'Untitled Milestone',
+                description: milestone.definition_of_done || '',
+                planTitle: plan.goal_title || 'Goal'
+              })
+            }
+          })
+        }
+      })
+      
+      // Sort by date
+      milestoneEvents.sort((a, b) => new Date(a.date) - new Date(b.date))
+      
+      setEvents(milestoneEvents)
+      console.log('📅 Loaded milestones:', milestoneEvents.length)
+    } catch (err) {
+      console.error('Failed to load milestones:', err)
+      setEvents([])
+    }
+  }
 
   // 打印当前日历视图。
   const handlePrint = () => {
@@ -32,7 +80,7 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
       'PRODID:-//Echo//Calendar Export//EN',
     ]
 
-    EVENTS.forEach((event, index) => {
+    events.forEach((event, index) => {
       const [year, month, day] = event.date.split('-')
       const stamp = `${year}${month}${day}T090000Z`
       const uid = `echo-${year}${month}${day}-${index}@echo`
@@ -43,6 +91,7 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
         `DTSTART:${year}${month}${day}T090000Z`,
         `DTEND:${year}${month}${day}T100000Z`,
         `SUMMARY:${event.title}`,
+        event.description ? `DESCRIPTION:${event.description}` : '',
         'END:VEVENT'
       )
     })
@@ -59,21 +108,36 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
 
   // 过滤出当前年月的事件。
   const filteredEvents = useMemo(() => {
-    return EVENTS.filter((event) => {
+    return events.filter((event) => {
       const [year, month] = event.date.split('-').map(Number)
       return year === selectedYear && month === currentMonthIndex + 1
     })
-  }, [selectedYear, currentMonthIndex])
+  }, [events, selectedYear, currentMonthIndex])
 
   // 将事件映射到日期，便于快速查找。
   const eventsByDay = useMemo(() => {
     const map = new Map()
     filteredEvents.forEach((event) => {
       const day = Number(event.date.split('-')[2])
-      map.set(day, event.title)
+      if (!map.has(day)) {
+        map.set(day, [])
+      }
+      map.get(day).push(event)
     })
     return map
   }, [filteredEvents])
+
+  // 计算接下来30天的milestones（用于侧边timeline）
+  const upcomingEvents = useMemo(() => {
+    const now = new Date()
+    const thirtyDaysLater = new Date(now)
+    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30)
+    
+    return events.filter(event => {
+      const eventDate = new Date(event.date)
+      return eventDate >= now && eventDate <= thirtyDaysLater
+    }).slice(0, 10) // 最多显示10个
+  }, [events])
 
   // 计算当月天数与首日偏移（周一为起点）。
   const daysInMonth = new Date(selectedYear, currentMonthIndex + 1, 0).getDate()
@@ -188,11 +252,15 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
                   return <div key={`empty-${index}`} className="day-card empty" />
                 }
                 const day = index - offset + 1
-                const event = eventsByDay.get(day)
+                const dayEvents = eventsByDay.get(day) || []
                 return (
-                  <div key={day} className={`day-card ${event ? 'has-event' : ''}`}>
+                  <div key={day} className={`day-card ${dayEvents.length > 0 ? 'has-event' : ''}`}>
                     <span className="day-number">{day}</span>
-                    {event && <span className="day-event">{event}</span>}
+                    {dayEvents.map((event, idx) => (
+                      <span key={idx} className="day-event" title={event.description}>
+                        {event.title}
+                      </span>
+                    ))}
                   </div>
                 )
               })}
@@ -234,20 +302,27 @@ function Calendar({ onBack, showMenuButton, onToggleMenu }) {
             <span>Next 30 days</span>
           </div>
           <div className="timeline-list">
-            {filteredEvents.map((event) => (
-              <div key={event.date} className="timeline-item">
-                <div className="timeline-date-pill">{event.date}</div>
-                <div className="timeline-info">
-                  <strong>{event.title}</strong>
-                  <span>Focus block - 2h</span>
+            {upcomingEvents.map((event, index) => {
+              const eventDate = new Date(event.date)
+              const daysUntil = Math.ceil((eventDate - new Date()) / (1000 * 60 * 60 * 24))
+              return (
+                <div key={`${event.date}-${index}`} className="timeline-item">
+                  <div className="timeline-date-pill">{event.date}</div>
+                  <div className="timeline-info">
+                    <strong>{event.title}</strong>
+                    <span>
+                      {daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`}
+                      {event.planTitle && ` • ${event.planTitle}`}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {filteredEvents.length === 0 && (
+              )
+            })}
+            {upcomingEvents.length === 0 && (
               <div className="timeline-item">
                 <div className="timeline-info">
-                  <strong>No events scheduled</strong>
-                  <span>Pick a different month or year.</span>
+                  <strong>No upcoming milestones</strong>
+                  <span>Create a plan to see your timeline!</span>
                 </div>
               </div>
             )}

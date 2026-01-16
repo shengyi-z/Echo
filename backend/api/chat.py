@@ -217,6 +217,76 @@ def _normalize_plan_types(plan: Dict[str, Any]) -> Dict[str, Any]:
     return plan
 
 
+def _validate_dates(plan: Dict[str, Any]) -> Tuple[bool, list]:
+    """
+    验证plan中所有日期是否 >= 2026-01-14 (今天)
+    返回: (is_valid, invalid_dates_list)
+    """
+    from datetime import datetime
+    
+    min_date = datetime(2026, 1, 14).date()
+    invalid_dates = []
+    
+    # 检查goal.deadline
+    if "goal" in plan and isinstance(plan["goal"], dict):
+        deadline_str = plan["goal"].get("deadline")
+        if deadline_str:
+            try:
+                deadline = datetime.strptime(deadline_str, "%Y-%m-%d").date()
+                if deadline < min_date:
+                    invalid_dates.append(f"goal.deadline: {deadline_str}")
+            except:
+                pass
+    
+    # 检查所有milestone的target_date和task的due_date
+    milestones = plan.get("milestones", [])
+    if isinstance(milestones, list):
+        for idx, ms in enumerate(milestones):
+            if not isinstance(ms, dict):
+                continue
+            
+            # 检查milestone target_date
+            target_date_str = ms.get("target_date")
+            if target_date_str:
+                try:
+                    target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
+                    if target_date < min_date:
+                        invalid_dates.append(f"milestone[{idx}].target_date: {target_date_str}")
+                except:
+                    pass
+            
+            # 检查tasks中的due_date
+            tasks = ms.get("tasks", [])
+            if isinstance(tasks, list):
+                for task_idx, task in enumerate(tasks):
+                    if not isinstance(task, dict):
+                        continue
+                    due_date_str = task.get("due_date")
+                    if due_date_str:
+                        try:
+                            due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
+                            if due_date < min_date:
+                                invalid_dates.append(f"milestone[{idx}].task[{task_idx}].due_date: {due_date_str}")
+                        except:
+                            pass
+    
+    return len(invalid_dates) == 0, invalid_dates
+
+
+def _date_validation_prompt(invalid_dates: list) -> str:
+    """
+    生成日期验证失败的修复提示
+    """
+    dates_str = "\n".join(f"  - {d}" for d in invalid_dates)
+    return (
+        f"ERROR: The following dates are BEFORE 2026-01-14 (today), which violates the requirement:\n"
+        f"{dates_str}\n\n"
+        f"CRITICAL: Today is 2026-01-14. ALL dates must be >= 2026-01-14.\n"
+        f"Please regenerate the COMPLETE JSON with ALL dates corrected to be on or after 2026-01-14.\n"
+        f"Output the full corrected JSON (wrapped in ```json fence), nothing else.\n"
+    )
+
+
 def _repair_prompt_v1() -> str:
     """
     第一次修复：要求严格 JSON + 修正 estimated_time 类型
@@ -366,11 +436,34 @@ async def send_chat_message(request: ChatRequest):
                         plan_data = parsed3
 
         # -------------------------
-        # 4) 如果解析成功：做类型归一化，并把“干净 JSON”回写给前端
-        #    （这样前端存 localStorage 时就不会存到坏类型）
+        # 4) 如果解析成功：做类型归一化 + 日期验证
         # -------------------------
         if plan_data is not None:
             plan_data = _normalize_plan_types(plan_data)
+            
+            # ✅ 日期验证：检查所有日期是否 >= 2026-01-14
+            is_valid, invalid_dates = _validate_dates(plan_data)
+            if not is_valid:
+                print(f"⚠️ 检测到无效日期（早于2026-01-14）: {invalid_dates}")
+                print("♻️ 自动要求AI修正日期...")
+                
+                # 要求AI重新生成，修正日期
+                date_fix_content = await send_message(request.thread_id, _date_validation_prompt(invalid_dates))
+                ok_fixed, parsed_fixed, reason_fixed = _try_parse_plan_json(date_fix_content)
+                print(f"🔧 Date fix parse: ok={ok_fixed}, reason={reason_fixed}")
+                
+                if ok_fixed and isinstance(parsed_fixed, dict):
+                    # 再次验证修正后的日期
+                    is_valid_fixed, invalid_dates_fixed = _validate_dates(parsed_fixed)
+                    if is_valid_fixed:
+                        print("✅ 日期已修正")
+                        content = date_fix_content
+                        plan_data = _normalize_plan_types(parsed_fixed)
+                    else:
+                        print(f"⚠️ 修正后仍有无效日期: {invalid_dates_fixed}")
+                        # 仍然使用修正后的数据，但记录警告
+                        content = date_fix_content
+                        plan_data = _normalize_plan_types(parsed_fixed)
 
             # ✅ 回写为标准 JSON fence（前端 regex/parse 更稳定）
             # 说明：即使模型原来没有 fence，这里也会统一包装一次，减少前端分支
